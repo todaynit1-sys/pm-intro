@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>하늘 수비대 · 미세먼지 계절관리제 아케이드</title>
+<meta name="description" content="하늘에서 내려오는 먼지몬을 막아라! 미세먼지 계절관리제·비상저감조치·시민 행동요령을 배우는 레트로 슈팅 게임">
+<meta name="theme-color" content="#1a1c2c">
+<meta property="og:type" content="website">
+<meta property="og:title" content="하늘 수비대 · 미세먼지 계절관리제 아케이드">
+<meta property="og:description" content="하늘에서 내려오는 먼지몬을 막아라! 넉 달 동안 마을의 하늘을 지키는 레트로 슈팅 게임">
+<style>
+:root{--ink:#1a1c2c;--paper:#f4f1de;--navy:#29366f;--sky:#41a6f6;--cyan:#73eff7;--mint:#38b764;--gold:#ffcd75;--orange:#ef7d57;--red:#e5484d;--pink:#f7a8b8;--grey:#94b0c2;--u:2px;
+  --font:'Pretendard','Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;overflow:hidden;background:#101224;color:var(--ink);font-family:var(--font);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;word-break:keep-all;overflow-wrap:anywhere;touch-action:none;-webkit-user-select:none;user-select:none}
+button,input{font:inherit;color:inherit}
+#cab{position:fixed;inset:0;display:flex;justify-content:center;align-items:center;gap:26px;background:#101224;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:24px 24px}
+#screen{position:relative;flex:none;height:min(100dvh,calc(100vw * 16 / 9));aspect-ratio:9/16;background:#000;overflow:hidden;font-size:calc(var(--u) * 7);line-height:1.45}
+#scr{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+.side{flex:0 1 270px;align-self:center;color:#cdd5ff;font-size:14px;line-height:1.6;display:none}
+.side h3{margin:0 0 8px;font-size:13px;letter-spacing:.12em;color:var(--gold)}
+.side .pbox{padding:14px 16px;margin-bottom:14px;border:3px solid #3b4a9a;border-radius:10px;background:#181b3a;box-shadow:0 5px 0 #0b0c18}
+.side b{color:#fff}
+.side kbd{display:inline-block;min-width:1.7em;padding:1px 6px;border-radius:5px;border:2px solid #5a6bd0;background:#232866;color:#fff;font:700 12px/1.5 var(--font);text-align:center}
+.side ul{margin:0;padding-left:18px}
+.side li+li{margin-top:4px}
+.side .mycard{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px dashed #3b4a9a;font-size:13px}
+.side .mycard:first-child{border-top:0}
+.side .mycard i{font-style:normal;font-size:20px;line-height:1.2}
+@media (min-width:1000px) and (min-height:520px){.side{display:block}#screen{height:min(96dvh,900px);border:6px solid #0b0c18;border-radius:18px;box-shadow:0 0 0 4px #3b4a9a,0 18px 0 #0b0c18,0 30px 60px rgba(0,0,0,.6)}}
+
+/* 화면 위 글자·버튼 (픽셀 게임 위에 또렷한 글자로) */
+.box{background:var(--paper);border:calc(var(--u) * 1.2) solid var(--ink);border-radius:calc(var(--u) * 2.5);box-shadow:0 calc(var(--u) * 1.4) 0 var(--ink)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4em;min-height:calc(var(--u) * 19);padding:0 calc(var(--u) * 7);border:calc(var(--u) * 1.2) solid var(--ink);border-radius:calc(var(--u) * 3);background:var(--gold);box-shadow:0 calc(var(--u) * 1.6) 0 var(--ink);font-size:calc(var(--u) * 8);font-weight:900;cursor:pointer;transition:transform .05s,box-shadow .05s}
+.btn:active{transform:translateY(calc(var(--u) * 1.2));box-shadow:0 calc(var(--u) * .4) 0 var(--ink)}
+.btn.big{width:100%;min-height:calc(var(--u) * 23);font-size:calc(var(--u) * 9.5)}
+.btn.mint{background:var(--mint);color:#fff}
+.btn.sky{background:var(--sky);color:#fff}
+.btn.plain{background:#fff}
+.btn.sm{min-height:calc(var(--u) * 14);padding:0 calc(var(--u) * 4.5);font-size:calc(var(--u) * 6.4)}
+.btn:focus-visible{outline:calc(var(--u) * 1) solid #fff;outline-offset:calc(var(--u) * .8)}
+
+/* HUD */
+#hud{position:absolute;left:0;right:0;top:0;padding:calc(var(--u) * 3) calc(var(--u) * 4) 0;color:#fff;font-weight:900;text-shadow:0 calc(var(--u) * .7) 0 var(--ink);pointer-events:none}
+.h-row{display:flex;align-items:center;justify-content:space-between;gap:calc(var(--u) * 3)}
+#hHearts{font-size:calc(var(--u) * 9);letter-spacing:calc(var(--u) * .6);color:#ff5d73;white-space:nowrap}
+#hHearts i{font-style:normal;color:rgba(255,255,255,.35)}
+#hStage{font-size:calc(var(--u) * 6.4);padding:calc(var(--u) * .6) calc(var(--u) * 3);border-radius:99px;background:rgba(26,28,44,.55);white-space:nowrap}
+#hScore{font-size:calc(var(--u) * 8);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pm{margin-top:calc(var(--u) * 2.5);display:flex;align-items:center;gap:calc(var(--u) * 3);font-size:calc(var(--u) * 6)}
+.pm-lab{white-space:nowrap;font-variant-numeric:tabular-nums}
+.pm-lab b{font-size:calc(var(--u) * 8)}
+.pm-bar{position:relative;flex:1;height:calc(var(--u) * 5);border:calc(var(--u) * .9) solid var(--ink);border-radius:99px;background:rgba(26,28,44,.6);overflow:visible}
+.pm-bar i{display:block;height:100%;width:20%;border-radius:99px;background:var(--mint);transition:width .25s,background .25s}
+.pm-bar em{position:absolute;top:calc(var(--u) * -1.2);bottom:calc(var(--u) * -1.2);width:calc(var(--u) * .9);background:#fff;opacity:.85}
+.pm-bar em span{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:calc(var(--u) * .6);font-size:calc(var(--u) * 4.6);font-style:normal;white-space:nowrap}
+#pauseBtn{position:absolute;right:calc(var(--u) * 4);top:calc(var(--u) * 27);width:calc(var(--u) * 13);height:calc(var(--u) * 13);padding:0;min-height:0;font-size:calc(var(--u) * 6);background:rgba(244,241,222,.85)}
+#cardsRow{position:absolute;left:calc(var(--u) * 4);bottom:calc(var(--u) * 6);display:flex;gap:calc(var(--u) * 2);pointer-events:none}
+#cardsRow span{display:grid;place-items:center;width:calc(var(--u) * 13);height:calc(var(--u) * 13);border:calc(var(--u) * .9) solid var(--ink);border-radius:calc(var(--u) * 2.5);background:var(--paper);font-size:calc(var(--u) * 8)}
+#alertBtn{position:absolute;right:calc(var(--u) * 4);bottom:calc(var(--u) * 5);min-height:calc(var(--u) * 22);padding:0 calc(var(--u) * 5);flex-direction:column;gap:0;line-height:1.15;background:#565d7a;color:#c9cde0;font-size:calc(var(--u) * 6.6)}
+#alertBtn small{font-size:calc(var(--u) * 4.6);font-weight:800}
+#alertBtn.on{background:var(--red);color:#fff;animation:alarm .5s steps(2) infinite}
+@keyframes alarm{50%{background:#ff9f1c;transform:scale(1.06)}}
+#banner{position:absolute;left:calc(var(--u) * 6);right:calc(var(--u) * 6);top:27%;text-align:center;color:#fff;font-weight:900;text-shadow:0 calc(var(--u) * .9) 0 var(--ink),0 0 calc(var(--u) * 5) rgba(26,28,44,.7);pointer-events:none;opacity:0}
+#banner b{display:block;font-size:calc(var(--u) * 12);line-height:1.2}
+#banner span{display:block;margin-top:calc(var(--u) * 2);font-size:calc(var(--u) * 6.6)}
+#banner.on{animation:ban 2.6s ease forwards}
+@keyframes ban{0%{opacity:0;transform:scale(.7)}10%,80%{opacity:1;transform:scale(1)}100%{opacity:0;transform:translateY(calc(var(--u) * -8))}}
+#toast{position:absolute;left:calc(var(--u) * 5);right:calc(var(--u) * 5);bottom:calc(var(--u) * 34);display:flex;flex-direction:column;align-items:center;gap:calc(var(--u) * 2);pointer-events:none}
+#toast div{max-width:100%;padding:calc(var(--u) * 2) calc(var(--u) * 5);border:calc(var(--u) * .9) solid var(--ink);border-radius:99px;background:rgba(244,241,222,.96);font-size:calc(var(--u) * 6.2);font-weight:800;text-align:center;animation:tin 3.2s ease forwards}
+@keyframes tin{0%{opacity:0;transform:translateY(calc(var(--u) * 4))}8%,84%{opacity:1;transform:none}100%{opacity:0}}
+
+/* 덮는 화면 (제목·선택·카드·결과) */
+#ovl{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--u) * 5);padding:calc(var(--u) * 8) calc(var(--u) * 8);background:rgba(16,18,36,.62);overflow:auto;touch-action:pan-y}
+#ovl.show{display:flex}
+#ovl.clear{background:transparent}
+.logo{text-align:center;color:#fff}
+.logo-k{display:inline-block;padding:calc(var(--u) * 1) calc(var(--u) * 5);border:calc(var(--u) * .9) solid var(--ink);border-radius:99px;background:var(--gold);color:var(--ink);font-size:calc(var(--u) * 6);font-weight:900}
+.logo h1{margin:calc(var(--u) * 4) 0 calc(var(--u) * 3);font-size:calc(var(--u) * 27);line-height:1.02;font-weight:900;letter-spacing:-.04em;color:#fff;text-shadow:calc(var(--u) * 1) 0 0 var(--ink),calc(var(--u) * -1) 0 0 var(--ink),0 calc(var(--u) * 1) 0 var(--ink),0 calc(var(--u) * -1) 0 var(--ink),calc(var(--u) * 1) calc(var(--u) * 1) 0 var(--ink),calc(var(--u) * -1) calc(var(--u) * 1) 0 var(--ink),0 calc(var(--u) * 3.4) 0 var(--sky),0 calc(var(--u) * 4.6) 0 var(--ink)}
+.logo h1 em{font-style:normal;color:var(--gold)}
+.logo p{margin:0;font-size:calc(var(--u) * 6.6);font-weight:800;text-shadow:0 calc(var(--u) * .7) 0 var(--ink)}
+.blink{animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+.menu{display:flex;flex-direction:column;gap:calc(var(--u) * 4);width:78%}
+.menu .row{display:flex;gap:calc(var(--u) * 4)}
+.menu .row .btn{flex:1}
+.best{color:#fff;font-size:calc(var(--u) * 6);font-weight:800;text-shadow:0 calc(var(--u) * .7) 0 var(--ink)}
+.panel{width:100%;padding:calc(var(--u) * 6) calc(var(--u) * 6) calc(var(--u) * 6.5);max-height:100%;overflow:auto;touch-action:pan-y}
+.panel h2{margin:0 0 calc(var(--u) * 2);font-size:calc(var(--u) * 10.5);line-height:1.2;font-weight:900}
+.panel .k{display:inline-block;margin-bottom:calc(var(--u) * 2);padding:calc(var(--u) * .5) calc(var(--u) * 3.5);border-radius:99px;background:var(--ink);color:var(--gold);font-size:calc(var(--u) * 5.6);font-weight:900;letter-spacing:.06em}
+.panel p{margin:0 0 calc(var(--u) * 3);font-size:calc(var(--u) * 6.6);font-weight:600}
+.panel p b,.panel li b{color:#c2410c}
+.panel ul{margin:0 0 calc(var(--u) * 3);padding-left:calc(var(--u) * 9);font-size:calc(var(--u) * 6.3);font-weight:600}
+.panel li+li{margin-top:calc(var(--u) * 1)}
+.field{display:flex;align-items:center;gap:calc(var(--u) * 3);margin-bottom:calc(var(--u) * 4);font-size:calc(var(--u) * 6.4);font-weight:900}
+.field input{flex:1;min-width:0;padding:calc(var(--u) * 2.5) calc(var(--u) * 4);border:calc(var(--u) * 1) solid var(--ink);border-radius:calc(var(--u) * 2.5);background:#fff;font-size:calc(var(--u) * 7);font-weight:800;-webkit-user-select:text;user-select:text}
+.heroes{display:grid;grid-template-columns:repeat(3,1fr);gap:calc(var(--u) * 3);margin-bottom:calc(var(--u) * 4)}
+.hero{padding:calc(var(--u) * 3) calc(var(--u) * 1.5) calc(var(--u) * 3.5);border:calc(var(--u) * 1) solid var(--ink);border-radius:calc(var(--u) * 3);background:#fff;text-align:center;cursor:pointer;font-size:calc(var(--u) * 5.2);font-weight:700;line-height:1.35;box-shadow:0 calc(var(--u) * 1.2) 0 var(--ink)}
+.hero canvas{display:block;width:100%;aspect-ratio:1;image-rendering:pixelated;border-radius:calc(var(--u) * 2);background:linear-gradient(180deg,#bfe6ff,#eaf7ff)}
+.hero b{display:block;margin-top:calc(var(--u) * 2);font-size:calc(var(--u) * 7.4);font-weight:900}
+.hero[aria-pressed="true"]{background:var(--gold);transform:translateY(calc(var(--u) * -1.5));box-shadow:0 calc(var(--u) * 2.7) 0 var(--ink)}
+.hero[aria-pressed="true"] canvas{animation:hop .6s steps(2) infinite}
+@keyframes hop{50%{transform:translateY(calc(var(--u) * -1.5))}}
+.stat{display:flex;gap:calc(var(--u) * 1);justify-content:center;margin-top:calc(var(--u) * 1.5);font-size:calc(var(--u) * 4.6)}
+.mon{display:flex;gap:calc(var(--u) * 4);align-items:center;padding:calc(var(--u) * 3);margin-bottom:calc(var(--u) * 3);border:calc(var(--u) * .9) dashed var(--ink);border-radius:calc(var(--u) * 3);background:#fff}
+.mon canvas{flex:none;width:calc(var(--u) * 24);height:calc(var(--u) * 24);image-rendering:pixelated}
+.mon div{font-size:calc(var(--u) * 5.8);font-weight:600;line-height:1.4}
+.mon b{display:block;font-size:calc(var(--u) * 7);font-weight:900;color:var(--ink)}
+.mon.lock{opacity:.55}
+.cards{display:flex;flex-direction:column;gap:calc(var(--u) * 3.5);width:100%}
+.card{display:flex;gap:calc(var(--u) * 4);align-items:center;width:100%;padding:calc(var(--u) * 4);border:calc(var(--u) * 1.2) solid var(--ink);border-radius:calc(var(--u) * 3.5);background:var(--paper);box-shadow:0 calc(var(--u) * 1.6) 0 var(--ink);text-align:left;cursor:pointer;font-size:calc(var(--u) * 5.8);font-weight:600;line-height:1.4}
+.card:active{transform:translateY(calc(var(--u) * 1.2));box-shadow:0 calc(var(--u) * .4) 0 var(--ink)}
+.card i{flex:none;display:grid;place-items:center;width:calc(var(--u) * 22);height:calc(var(--u) * 22);border:calc(var(--u) * 1) solid var(--ink);border-radius:calc(var(--u) * 3);background:#fff;font-style:normal;font-size:calc(var(--u) * 12)}
+.card b{display:block;font-size:calc(var(--u) * 7.6);font-weight:900}
+.card em{display:block;font-style:normal;color:#0f766e;font-weight:900}
+.card small{display:block;margin-top:calc(var(--u) * .8);font-size:calc(var(--u) * 5.2);color:#4b5563}
+.head{color:#fff;text-align:center;font-weight:900;text-shadow:0 calc(var(--u) * .9) 0 var(--ink)}
+.head b{display:block;font-size:calc(var(--u) * 12);line-height:1.2}
+.head span{font-size:calc(var(--u) * 6.4)}
+.grade{display:grid;place-items:center;width:calc(var(--u) * 34);height:calc(var(--u) * 34);margin:0 auto calc(var(--u) * 3);border:calc(var(--u) * 1.6) solid var(--red);border-radius:50%;color:var(--red);font-size:calc(var(--u) * 20);font-weight:900;transform:rotate(-10deg)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u) * 2.5);margin-bottom:calc(var(--u) * 4)}
+.stats div{padding:calc(var(--u) * 2.5);border:calc(var(--u) * .9) solid var(--ink);border-radius:calc(var(--u) * 2.5);background:#fff;text-align:center;font-size:calc(var(--u) * 5.2);font-weight:700}
+.stats b{display:block;font-size:calc(var(--u) * 9);font-weight:900;font-variant-numeric:tabular-nums}
+.rowb{display:flex;gap:calc(var(--u) * 3);flex-wrap:wrap}
+.rowb .btn{flex:1}
+.tabs{display:flex;gap:calc(var(--u) * 2);margin-bottom:calc(var(--u) * 4);overflow-x:auto}
+.tabs button{flex:none;padding:calc(var(--u) * 2) calc(var(--u) * 4);border:calc(var(--u) * .9) solid var(--ink);border-radius:99px;background:#fff;font-size:calc(var(--u) * 5.8);font-weight:900;cursor:pointer}
+.tabs button.on{background:var(--ink);color:var(--gold)}
+.note h3{margin:calc(var(--u) * 4) 0 calc(var(--u) * 1.5);font-size:calc(var(--u) * 7);color:#0f766e}
+.note h3:first-child{margin-top:0}
+.note p,.note li{font-size:calc(var(--u) * 6);font-weight:500;line-height:1.6}
+.note ul,.note ol{margin:0;padding-left:calc(var(--u) * 9)}
+.note table{width:100%;border-collapse:collapse;font-size:calc(var(--u) * 5.4);line-height:1.5}
+.note th,.note td{border:1px solid #b9b6a3;padding:calc(var(--u) * 1.6) calc(var(--u) * 2);text-align:left;vertical-align:top}
+.note th{background:#e6e2c8;font-weight:900;white-space:nowrap}
+.note .src{margin-top:calc(var(--u) * 4);padding-top:calc(var(--u) * 3);border-top:1px solid #b9b6a3;font-size:calc(var(--u) * 4.8);color:#555}
+.pill{display:inline-block;padding:0 calc(var(--u) * 2.5);border-radius:99px;font-size:calc(var(--u) * 5);font-weight:900;color:#fff}
+.x{position:sticky;top:0;float:right;width:calc(var(--u) * 13);height:calc(var(--u) * 13);min-height:0;padding:0;font-size:calc(var(--u) * 7);z-index:2}
+.tabs{scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.panel,#ovl{scrollbar-width:thin}
+#rot{position:absolute;inset:0;display:none;place-items:center;background:#101224;color:#fff;font-weight:900;font-size:16px;text-align:center}
+</style>
+</head>
+<body>
+<div id="cab">
+  <aside class="side" id="sideL">
+    <div class="pbox"><h3>HOW TO PLAY</h3><ul><li><b>끌거나</b> <kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd>로 움직여요. 물방울은 저절로 나가요.</li><li>먼지몬이 <b>마을까지 내려가면</b> 농도가 올라가요.</li><li>🚨이 빨갛게 켜지면 <kbd>Space</kbd>로 <b>비상저감조치</b>!</li><li><kbd>P</kbd> 잠깐 멈춤</li></ul></div>
+    <div class="pbox"><h3>이달의 이야기</h3><div id="sideInfo">매년 <b>12월 1일~이듬해 3월 31일</b>은 미세먼지 계절관리제 기간이에요. 넉 달 동안 마을의 하늘을 지켜 주세요.</div></div>
+  </aside>
+  <main id="screen">
+    <canvas id="scr" width="180" height="320" aria-label="하늘 수비대 게임 화면"></canvas>
+    <div id="hud" hidden>
+      <div class="h-row"><span id="hHearts"></span><span id="hStage"></span><span id="hScore">0</span></div>
+      <div class="pm"><span class="pm-lab">오늘 <b id="pmNow">30</b></span><div class="pm-bar"><i id="pmBar"></i><em style="left:50%"><span>50</span></em><em style="left:75%"><span>75</span></em></div><span class="pm-lab">내일 <b id="pmFc">30</b></span></div>
+    </div>
+    <button class="btn" id="pauseBtn" hidden aria-label="잠깐 멈춤">Ⅱ</button>
+    <div id="cardsRow"></div>
+    <button class="btn" id="alertBtn" hidden>🚨 발령<small id="alertSub">기준 미달</small></button>
+    <div id="banner"></div>
+    <div id="toast"></div>
+    <div id="ovl"></div>
+  </main>
+  <aside class="side" id="sideR">
+    <div class="pbox"><h3>내 대책 카드</h3><div id="sideCards">달을 넘길 때마다 <b>대책 카드</b>를 한 장 골라요. 먼지를 쏘는 것보다 <b>배출원을 줄이는 대책</b>이 더 세답니다.</div></div>
+    <div class="pbox"><h3>비상저감조치 발령 기준</h3><ul><li>오늘 평균 <b>50 초과</b> + 내일 <b>50 초과</b> 예보</li><li>오늘 주의보·경보 + 내일 50 초과 예보</li><li>내일 <b>75 초과</b> 예보</li></ul></div>
+  </aside>
+</div>
+<script>
+'use strict';
+/* =========================================================
+   하늘 수비대 — 미세먼지 계절관리제 아케이드 (레트로 세로 슈팅)
+   그림은 모두 코드로 그린 픽셀 아트(180×320), 글자는 그 위에 또렷하게 얹음. 외부 파일·라이브러리 없음.
+   ========================================================= */
+const $ = (s, r = document) => r.querySelector(s);
+const rand = (a, b) => a + Math.random() * (b - a), pick = (a) => a[(Math.random() * a.length) | 0];
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, t) => a + (b - a) * t;
+const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const W = 180, H = 320, TOWN = 292;          // 화면 크기(픽셀), 마을 높이(여기까지 내려오면 '놓친 먼지')
+const F = { goal: 19, round: '제7차(’25.12~’26.3)' }; // 수치는 제7차 계절관리제 자료 기준
+const ORG = '';                               // 인증서 아래에 넣을 기관 이름 (비우면 넣지 않음)
+const KEY = 'sky-guard-v1';
+const store = { best: 0, seen: {}, hero: 0, name: '', clear: 0, mute: 0 };
+try { Object.assign(store, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) { /* 저장 못 하는 환경 */ }
+const keep = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* ignore */ } };
+
+/* ---------- 픽셀 그림 도구 ---------- */
+const PAL = { K: '#1a1c2c', W: '#f4f4f4', L: '#c9d6e3', M: '#94b0c2', D: '#566c86', s: '#f2c9a0', p: '#f7a8b8', B: '#41a6f6', b: '#3b5dc9', C: '#73eff7', E: '#c8f4ff', G: '#38b764', g: '#257179', Y: '#ffcd75', O: '#ef7d57', R: '#b13e53', P: '#f7a8b8', H: '#6b4a3a', T: '#2ec4b6' };
+function sprite(rows, extra) { // 글자 그림 → 캔버스
+  const h = rows.length, w = rows[0].length, c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d');
+  rows.forEach((r, j) => { if (r.length !== w) throw new Error('sprite row ' + j + ' length ' + r.length); [...r].forEach((ch, i) => { if (ch !== '.') { x.fillStyle = (extra && extra[ch]) || PAL[ch] || '#f0f'; x.fillRect(i, j, 1, 1); } }); });
+  return c;
+}
+function paint(w, h, fn) { // 네모·동그라미로 그리기 (동그라미도 픽셀로)
+  const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d');
+  fn({ r: (X, Y, w2, h2, col) => { x.fillStyle = col; x.fillRect(X | 0, Y | 0, w2, h2); }, p: (X, Y, col) => { x.fillStyle = col; x.fillRect(X | 0, Y | 0, 1, 1); },
+    c: (cx, cy, rad, col) => { x.fillStyle = col; for (let dy = -rad; dy <= rad; dy++) { const k = Math.floor(Math.sqrt(rad * rad - dy * dy) + 0.4); x.fillRect(cx - k, cy + dy, k * 2 + 1, 1); } } });
+  return c;
+}
+function tint(c, col) { const o = document.createElement('canvas'); o.width = c.width; o.height = c.height; const x = o.getContext('2d'); x.drawImage(c, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = col; x.fillRect(0, 0, o.width, o.height); return o; }
+function outlined(c, col = PAL.K) { // 둘레에 1픽셀 테두리 → 어떤 배경에서도 또렷
+  const o = document.createElement('canvas'); o.width = c.width + 2; o.height = c.height + 2; const x = o.getContext('2d'), t = tint(c, col);
+  for (const [dx, dy] of [[0, 1], [2, 1], [1, 0], [1, 2]]) x.drawImage(t, dx, dy); x.drawImage(c, 1, 1); return o;
+}
+const eyes = (o, x, y, gap = 5, angry = true) => { for (const dx of [0, gap]) { o.r(x + dx, y, 3, 3, '#fff'); o.p(x + dx + 1, y + 1, PAL.K); } if (angry) { o.r(x - 1, y - 1, 3, 1, PAL.K); o.r(x + gap + 1, y - 1, 3, 1, PAL.K); o.p(x + 1, y, PAL.K); o.p(x + gap + 1, y, PAL.K); } };
+
+/* ---------- 주인공 셋 (구름을 타고 물방울을 쏨) ---------- */
+const CLOUD = ['..wwwaaaaaawww..', '.wwwwwwwwwwwwww.', 'wwwwwwwwwwwwwwww', 'wlwwwwlwwwwlwwww', '.llwwlllwwlllww.', '...ll...ll...l..'];
+const HEROES = [
+  { id: 'baram', name: '바람이', line: '빠른 발', desc: '바람처럼 재빨라요', speed: 1.35, pow: 1, hp: 3, col: '#41a6f6',
+    rows: ['......CC........', '.....CBBC.......', '....BBBBBBBB....', '...BBCBBBBBBB...', '...BLLLLLLLLB...', '...BsKssssKsB...', '...BspsssspsB...', '....sssKKsss....', '....YYYYYYYYYY..', '....bbbbbbbb.YY.'], pal: { a: '#3b5dc9' } },
+  { id: 'iseul', name: '이슬이', line: '두 줄 물방울', desc: '처음부터 두 줄로 쏴요', speed: 1, pow: 2, hp: 3, col: '#2ec4b6',
+    rows: ['.......C........', '......CCC.......', '.....CCCCC......', '....CCWCCCCC....', '...CCWCCCCCCC...', '...CCKCCCCKCC...', '...CCKCCCCKCC...', '...CPCCKKCCPC...', '....BCCCCCCB....', '.....PPPPPP.....'], pal: { a: '#73eff7' } },
+  { id: 'ssak', name: '새싹이', line: '튼튼한 체력', desc: '하트가 하나 더 많아요', speed: 1, pow: 1, hp: 4, col: '#38b764',
+    rows: ['.....G...GG.....', '.....GG.GGg.....', '......GGg.......', '....HHHgHHHH....', '...HHHHHHHHHH...', '...HsKssssKsH...', '...HspsssspsH...', '....sssKKsss....', '....GGGGGGGG....', '....YYYYYYYY....'], pal: { a: '#ffcd75' } },
+];
+HEROES.forEach((h) => { const pal = Object.assign({ w: '#ffffff', l: '#c9d6e3' }, h.pal); h.img = outlined(sprite(h.rows.concat(CLOUD), pal)); h.hit = tint(h.img, '#ffffff'); });
+
+/* ---------- 먼지몬 (배출원마다 한 종류) ---------- */
+const MON = {
+  smog: { name: '매연몬', from: '낡은 경유차의 배기가스', fix: '배출가스 5등급 차량 운행제한, 매연저감장치, 전기차·수소차 바꾸기', hp: 2, vy: 34, r: 7, sc: 10, leak: 3, col: '#4a4a5a' },
+  dust: { name: '흙먼지몬', from: '도로와 공사장에서 날리는 흙먼지', fix: '도로 청소차, 공사장 방진덮개와 물 뿌리기', hp: 3, vy: 27, r: 7, sc: 15, leak: 4, col: '#c9a66b' },
+  mini: { name: '꼬마 흙먼지', hp: 1, vy: 46, r: 4, sc: 5, leak: 2, col: '#c9a66b' },
+  stack: { name: '굴뚝몬', from: '공장과 발전소의 굴뚝 연기', fix: '석탄발전 가동정지·상한제약, 대형사업장 감축, 드론·AI 감시', hp: 7, vy: 26, r: 8, sc: 40, leak: 6, col: '#b5553c' },
+  ember: { name: '불티몬', from: '쓰레기와 농작물 찌꺼기 태우기', fix: '태우지 않고 모아서 수거·파쇄, 불법소각 신고', hp: 1, vy: 72, r: 5, sc: 15, leak: 3, col: '#f25c2a' },
+  sand: { name: '황사몬', from: '서풍을 타고 날아오는 모래먼지', fix: '예보 확인, 외출 줄이기, 보건용 마스크', hp: 4, vy: 15, r: 8, sc: 25, leak: 5, col: '#e3c15a' },
+  giant: { name: '굴뚝 거인', from: '석탄발전소의 큰 굴뚝', fix: '공공 석탄발전 최대 17기 가동정지, 46기 출력 80% 제한', boss: 1, hp: 110, r: 19, sc: 1500, col: '#b5553c' },
+  king: { name: '정체 대왕', from: '바람이 멈춰 먼지가 쌓이는 ‘대기 정체’', fix: '비상저감조치로 한꺼번에 줄이기', boss: 1, hp: 190, r: 21, sc: 3000, col: '#6b5a8a' },
+};
+function monFrames(type, f) {
+  const k = f ? 1 : 0;
+  if (type === 'smog') return paint(20, 18, (o) => { const c1 = '#3f3f4e', c2 = '#5d5d72'; o.c(10, 10, 6, c1); o.c(5, 9 - k, 4, c1); o.c(15, 9 + k, 4, c1); o.c(8, 5, 4, c1); o.c(13, 5 + k, 3, c1); o.c(6, 13, 3, c1); o.c(14, 13, 3, c1); o.c(8, 5, 2, c2); o.c(13, 6, 1, c2); eyes(o, 6, 8, 5); o.r(9, 13, 3, 1, PAL.K); });
+  if (type === 'dust' || type === 'mini') { const R = type === 'mini' ? 4 : 7, S = R * 2 + 4; return paint(S, S, (o) => { const c = (S / 2) | 0; o.c(c, c, R, '#c9a66b'); o.c(c - 2, c - 2, Math.max(1, R - 4), '#dcc08f'); for (let a = 0; a < 6; a++) o.p(c + Math.round(Math.cos(a + k) * (R - 1.5)), c + Math.round(Math.sin(a + k) * (R - 1.5)), '#9a7a44'); if (type === 'mini') { o.p(c - 1, c, PAL.K); o.p(c + 1, c, PAL.K); } else { eyes(o, c - 4, c - 2, 5); o.r(c - 1, c + 3, 3, 1, PAL.K); o.r(c - 4 + k, c + R, 2, 2, '#9a7a44'); o.r(c + 2 - k, c + R, 2, 2, '#9a7a44'); } }); }
+  if (type === 'stack') return paint(20, 22, (o) => { o.c(8 - k, 4, 3, '#8e8e9e'); o.c(12 + k, 3, 3, '#a9a9b8'); o.c(10, 5, 2, '#c4c4d0'); o.r(4, 7, 12, 3, '#e6ddcf'); o.r(5, 10, 10, 11, '#b5553c'); for (let y = 12; y < 21; y += 3) o.r(5, y, 10, 1, '#8f3f2c'); o.p(8, 11, '#8f3f2c'); o.p(12, 14, '#8f3f2c'); o.p(7, 17, '#8f3f2c'); eyes(o, 6, 13, 5); o.r(8, 18, 4, 1, PAL.K); o.r(2, 14 + k, 3, 2, '#b5553c'); o.r(15, 14 - k, 3, 2, '#b5553c'); });
+  if (type === 'ember') return paint(14, 16, (o) => { const w = [1, 1, 2, 2, 3, 4, 5, 5, 5, 5, 4, 3]; w.forEach((n, i) => o.r(7 - n + (i < 4 && k ? 1 : 0), 1 + i, n * 2, 1, '#f25c2a')); [1, 2, 3, 3, 3, 2].forEach((n, i) => o.r(7 - n, 6 + i, n * 2, 1, '#ffc93c')); o.r(6, 9, 2, 2, '#fff3b0'); o.p(5, 8, PAL.K); o.p(8, 8, PAL.K); });
+  if (type === 'sand') return paint(26, 16, (o) => { const c = '#e3c15a', d = '#c9a445'; o.c(8, 8, 6, c); o.c(16, 8, 6, c); o.c(12, 6, 5, c); o.c(20, 9, 4, c); o.c(5, 10, 3, c); o.r(2 + k * 2, 14, 6, 1, d); o.r(12 - k * 2, 14, 8, 1, d); o.r(6, 12, 12, 1, d); eyes(o, 8, 6, 6); o.r(11, 11, 4, 1, PAL.K); });
+  if (type === 'giant') return paint(46, 44, (o) => { o.c(16 - k, 6, 5, '#7d7d8f'); o.c(26 + k, 5, 6, '#9a9aad'); o.c(21, 8, 4, '#b9b9c8'); o.r(8, 11, 30, 5, '#e6ddcf'); o.r(8, 13, 30, 2, '#d24c4c'); o.r(10, 16, 26, 27, '#b5553c'); for (let y = 20; y < 43; y += 5) o.r(10, y, 26, 1, '#8f3f2c'); for (let y = 16; y < 43; y += 10) { o.r(18, y, 1, 4, '#8f3f2c'); o.r(28, y + 5, 1, 4, '#8f3f2c'); } o.r(14, 22, 7, 6, '#fff'); o.r(25, 22, 7, 6, '#fff'); o.r(17 + k, 24, 3, 3, PAL.K); o.r(26 + k, 24, 3, 3, PAL.K); o.r(13, 20, 8, 2, PAL.K); o.r(25, 20, 8, 2, PAL.K); o.r(17, 33, 12, 3, PAL.K); o.r(19, 33, 2, 2, '#fff'); o.r(25, 33, 2, 2, '#fff'); o.r(2, 24 + k * 2, 8, 5, '#b5553c'); o.r(36, 24 - k * 2, 8, 5, '#b5553c'); o.r(1, 28 + k * 2, 4, 4, '#8f3f2c'); o.r(41, 28 - k * 2, 4, 4, '#8f3f2c'); });
+  if (type === 'king') return paint(50, 42, (o) => { const c = '#6b5a8a', d = '#54466f', l = '#8a79ab'; o.c(25, 24, 15, c); o.c(11, 26, 9, c); o.c(39, 26, 9, c); o.c(17, 15, 9, c); o.c(33, 15, 9, c); o.c(8 - k, 32, 5, d); o.c(42 + k, 32, 5, d); o.c(20, 35, 6, d); o.c(31, 35, 6, d); o.c(18, 13, 4, l); o.c(31, 12, 3, l); o.r(17, 2, 16, 5, '#ffcd75'); for (const x of [17, 23, 29]) { o.r(x, 0, 4, 2, '#ffcd75'); } o.p(19, 4, '#e5484d'); o.p(25, 4, '#41a6f6'); o.p(31, 4, '#e5484d'); o.r(15, 18, 8, 7, '#fff'); o.r(27, 18, 8, 7, '#fff'); o.r(18 + k, 21, 3, 3, PAL.K); o.r(29 + k, 21, 3, 3, PAL.K); o.r(14, 16, 9, 2, PAL.K); o.r(27, 16, 9, 2, PAL.K); o.r(19, 30, 12, 4, PAL.K); o.r(21, 30, 2, 2, '#fff'); o.r(27, 30, 2, 2, '#fff'); });
+}
+for (const k in MON) { const a = outlined(monFrames(k, 0)), b = outlined(monFrames(k, 1)); MON[k].img = [a, b]; MON[k].hit = tint(a, '#ffffff'); }
+
+/* ---------- 작은 그림들: 물방울, 그을음, 아이템, 숫자 ---------- */
+const IMG = {
+  shot: outlined(sprite(['.W.', 'CWC', 'CCC', 'BCB', '.B.'])),
+  soot: outlined(paint(5, 5, (o) => { o.c(2, 2, 2, '#2b2b36'); o.p(1, 1, '#6a6a7c'); })),
+  orb: outlined(paint(7, 7, (o) => { o.c(3, 3, 3, '#8a79ab'); o.p(2, 2, '#d7ccf0'); })),
+  drone: outlined(sprite(['L.....L', 'LDDDDDL', '.DCBCD.', '..DDD..'])),
+  mask: outlined(sprite(['M.......M', 'MWWWWWWWM', '.WCCCCCW.', '.WWWWWWW.', '.WCCCCCW.', '..WWWWW..'])),
+  power: outlined(sprite(['...C...', '..CCC..', '.CCWCC.', 'CCWWWCC', 'CCCWCCC', '.CCCCC.', '..BBB..'])),
+  heart: outlined(sprite(['.RR.RR.', 'RPRRRRR', 'RRRRRRR', '.RRRRR.', '..RRR..', '...R...'], { R: '#ff4d6d', P: '#ffc2cf' })),
+  star: outlined(sprite(['...Y...', '..YYY..', 'YYYYYYY', '.YYYYY.', '.YY.YY.', 'Y.....Y'])),
+};
+const DIG = { 0: '111101101101111', 1: '010110010010111', 2: '111001111100111', 3: '111001111001111', 4: '101101111001001', 5: '111100111001111', 6: '111100111101111', 7: '111001001001001', 8: '111101111101111', 9: '111101111001111', '+': '000010111010000', '-': '000000111000000' };
+function drawNum(g, str, x, y, col) { g.fillStyle = col; let cx = x - ((str.length * 4 - 1) >> 1); for (const ch of str) { const d = DIG[ch]; if (d) for (let i = 0; i < 15; i++) if (d[i] === '1') g.fillRect(cx + (i % 3), y + ((i / 3) | 0), 1, 1); cx += 4; } }
+const emojiCache = {};
+function emoji(ch, size = 14) { // 이모지를 작은 캔버스에 그려 두고 픽셀처럼 크게 보여 줌 (보너스 판의 떨어지는 물건)
+  const k = ch + size; if (!emojiCache[k]) { const c = document.createElement('canvas'); c.width = c.height = size + 2; const x = c.getContext('2d'); x.font = `${size}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(ch, (size + 2) / 2, (size + 2) / 2 + 1); emojiCache[k] = c; }
+  return emojiCache[k];
+}
+
+/* ---------- 소리: 옛날 게임기 느낌의 합성음 (파일 없음) ---------- */
+const AU = (() => {
+  let ctx = null, muted = !!store.mute, nz = null, song = null, step = 0, nextT = 0, lastShot = 0;
+  const init = () => { if (!ctx) { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; ctx = new AC(); nz = ctx.createBuffer(1, ctx.sampleRate * 0.4, ctx.sampleRate); const d = nz.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; } else if (ctx.state === 'suspended') ctx.resume(); };
+  const live = () => ctx && !muted && ctx.state === 'running';
+  const tone = (f, dur, { type = 'square', vol = 0.06, to = f, at = 0 } = {}) => { if (!live()) return; const t = ctx.currentTime + at, o = ctx.createOscillator(), g = ctx.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); if (to !== f) o.frequency.exponentialRampToValueAtTime(Math.max(30, to), t + dur); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + dur + 0.02); };
+  const noise = (dur, vol = 0.12, at = 0) => { if (!live()) return; const t = ctx.currentTime + at, s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = nz; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); s.connect(g).connect(ctx.destination); s.start(t); s.stop(t + dur); };
+  // 배경음악: 네 마디 아르페지오(Am–G–F–E)와 베이스
+  const CH = [[0, 3, 7], [-2, 2, 5], [-4, 0, 3], [-5, -1, 2]], hz = (n) => 440 * Math.pow(2, n / 12);
+  setInterval(() => {
+    if (!live() || !song) return; const now = ctx.currentTime; if (nextT < now) nextT = now + 0.05; const beat = 60 / song.bpm / 2;
+    while (nextT < now + 0.3) { const bar = (step >> 3) % 4, i = step & 7, c = CH[bar], n = [c[0], c[1], c[2], c[1], c[0] + 12, c[2], c[1], c[2]][i] + song.key; tone(hz(n), beat * 0.9, { vol: 0.028, at: nextT - now }); if (i % 4 === 0) tone(hz(c[0] + song.key - 24), beat * 3.4, { type: 'triangle', vol: 0.07, at: nextT - now }); if (song.fast && i % 2) noise(0.03, 0.02, nextT - now); step++; nextT += beat; }
+  }, 100);
+  return {
+    init, get muted() { return muted; }, toggle() { muted = !muted; store.mute = muted ? 1 : 0; keep(); return muted; },
+    music(kind) { song = kind === null ? null : kind === 'boss' ? { bpm: 168, key: -2, fast: 1 } : kind === 'title' ? { bpm: 112, key: 3 } : { bpm: [132, 138, 144, 152][kind] || 132, key: [0, 2, -3, 5][kind] || 0 }; step = 0; },
+    shot() { const n = performance.now(); if (n - lastShot < 90) return; lastShot = n; tone(880, 0.05, { vol: 0.018, to: 520 }); },
+    hit() { tone(220, 0.05, { vol: 0.04, to: 140 }); },
+    boom() { noise(0.18, 0.1); tone(160, 0.2, { vol: 0.06, to: 50 }); },
+    big() { noise(0.5, 0.16); tone(120, 0.6, { vol: 0.09, to: 30 }); },
+    item() { tone(660, 0.07, { vol: 0.05 }); tone(990, 0.1, { vol: 0.05, at: 0.07 }); },
+    hurt() { tone(200, 0.25, { vol: 0.08, to: 70, type: 'sawtooth' }); noise(0.15, 0.08); },
+    pick() { tone(520, 0.06, { vol: 0.05 }); },
+    alarm() { for (let i = 0; i < 3; i++) { tone(880, 0.12, { vol: 0.06, at: i * 0.26 }); tone(660, 0.12, { vol: 0.06, at: i * 0.26 + 0.13 }); } },
+    clear() { [0, 4, 7, 12, 16].forEach((n, i) => tone(hz(n + 3), 0.16, { vol: 0.06, at: i * 0.11 })); },
+    lose() { [7, 3, 0, -5].forEach((n, i) => tone(hz(n), 0.22, { vol: 0.06, at: i * 0.2, type: 'triangle' })); },
+    good() { tone(784, 0.07, { vol: 0.05 }); tone(1047, 0.12, { vol: 0.05, at: 0.07 }); },
+    bad() { tone(196, 0.16, { vol: 0.06, to: 130 }); },
+  };
+})();
+
+/* =========================================================
+   게임 본체
+   ========================================================= */
+const cv = $('#scr'), g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
+const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const mixA = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t], rgb = (a) => `rgb(${a[0] | 0},${a[1] | 0},${a[2] | 0})`;
+const SKIES = [[hex('#232a66'), hex('#8a6fb5')], [hex('#33558a'), hex('#a9cbe0')], [hex('#2f8fc4'), hex('#c5ecf5')], [hex('#3fb0e6'), hex('#ffd9e2')]], HAZE = hex('#b39a6b'), NIGHT = hex('#141a3a');
+const G = { mode: 'title', run: false, stage: 0, st: 0, t: 0, score: 0, pm: 30, fc: 30, pmSum: 0, pmT: 0, leaks: 0, kills: 0, cut: 0, alerts: 0, alertCD: 0, calm: 0, stag: 0, queue: [], qi: 0, boss: null, cards: [], combo: 0, comboT: 0, shake: 0, flash: 0, bonus: null, deaths: 0, sLeak: 0, sCut: 0, sPm: 0, sT: 0, tipMask: 0, tipAlert: 0, auto: false };
+const P = { x: 90, y: 250, tx: 90, ty: 250, hp: 3, max: 3, inv: 0, cd: 0, pow: 1, shield: false, hero: HEROES[0], dcd: 0 };
+let enemies = [], shots = [], soots = [], items = [], parts = [], nums = [], bItems = [];
+const has = (id) => G.cards.includes(id);
+const CUT = { smog: 'c5', stack: 'coal', ember: 'burn', dust: 'site' }; // 어떤 대책 카드가 어떤 먼지몬을 줄이는지
+const seen = (k) => { store.seen[k] = 1; };
+
+/* ---------- 달마다 내려오는 먼지몬 (시각, 종류, 대형, 수, 값) ---------- */
+const STAGES = [
+  { mon: '12월', title: '계절관리제 시작!', sky: 0, news: ['smog', 'dust'],
+    story: '겨울과 봄에는 <b>서풍</b>이 불고, 공기가 한곳에 머물고, <b>난방</b>도 늘어서 미세먼지가 짙어져요. 그래서 <b>매년 12월 1일부터 이듬해 3월 31일까지</b> 넉 달 동안 평소보다 더 세게 줄여요. 이게 <b>미세먼지 계절관리제</b>!',
+    script: [[1, 'smog', 'stream', 4, 60], [4, 'smog', 'stream', 4, 120], [8, 'smog', 'line', 5], [12, 'dust', 'line', 3], [16, 'smog', 'vee', 5], [21, 'dust', 'stream', 3, 90], [22, 'smog', 'rain', 6, 4], [28, 'smog', 'line', 6], [32, 'dust', 'line', 4], [37, 'smog', 'rain', 10, 5], [39, 'dust', 'line', 3], [45, 'smog', 'vee', 5], [47, 'smog', 'line', 6]] },
+  { mon: '1월', title: '고농도와 비상저감조치', sky: 1, news: ['stack'],
+    story: '바람이 멈추면(대기 정체) 먼지가 쌓여 농도가 치솟아요. <b>오늘 평균 50 초과 + 내일도 50 초과 예보</b>이거나 <b>내일 75 초과 예보</b>면 <b>비상저감조치</b>를 발령해요. 🚨 단추가 빨갛게 켜지면 눌러 보세요!',
+    script: [[1, 'smog', 'line', 5], [5, 'stack', 'line', 1, 90], [9, 'smog', 'stream', 5, 50], [13, 'stack', 'line', 2], [18, 'dust', 'line', 4], [22, 'smog', 'rain', 8, 4], [27, 'calm', 'event'], [28, 'smog', 'rain', 12, 7], [31, 'dust', 'line', 3], [40, 'stack', 'line', 2], [41, 'smog', 'vee', 5], [48, 'giant', 'boss']] },
+  { mon: '2월', title: '모두가 함께', sky: 2, news: ['ember'],
+    story: '먼지가 짙은 날에는 <b>시민도 함께</b>해요. 외출을 줄이고, 나갈 땐 <b>보건용 마스크</b>, 돌아오면 씻기, 자가용 대신 <b>대중교통</b>. 그리고 쓰레기나 농작물 찌꺼기는 <b>태우지 않아요</b>.',
+    script: [[1, 'ember', 'stream', 5, 90], [5, 'smog', 'line', 6], [9, 'ember', 'rain', 8, 4], [14, 'stack', 'line', 2], [18, 'dust', 'line', 5], [23, 'ember', 'vee', 5], [24, 'smog', 'rain', 8, 5], [30, 'stack', 'line', 3], [36, 'ember', 'rain', 12, 6], [38, 'dust', 'line', 4], [45, 'smog', 'line', 6], [46, 'ember', 'stream', 6, 40], [48, 'dust', 'vee', 5]] },
+  { mon: '3월', title: '봄철 총력대응', sky: 3, news: ['sand'],
+    story: '3월은 한 해 중 초미세먼지가 <b>가장 짙고</b> ‘나쁨’인 날도 가장 많은 달이에요. 새 학기, 공사, 농사 준비가 한꺼번에 시작되거든요. 그래서 3월 한 달은 <b>봄철 총력대응</b>! 마지막에는 <b>정체 대왕</b>이 기다려요.',
+    script: [[1, 'sand', 'side', 4, 1], [6, 'smog', 'line', 6], [7, 'ember', 'stream', 4, 130], [12, 'sand', 'side', 5, -1], [17, 'stack', 'line', 2], [18, 'dust', 'line', 4], [23, 'ember', 'rain', 10, 5], [28, 'sand', 'side', 6, 1], [29, 'smog', 'vee', 5], [35, 'stack', 'line', 3], [41, 'smog', 'rain', 10, 5], [42, 'dust', 'line', 4], [43, 'ember', 'stream', 5, 60], [50, 'king', 'boss']] },
+];
+function expand(script) {
+  const q = [];
+  for (const [t, type, pat, n = 1, a] of script) {
+    if (pat === 'boss') q.push({ t, boss: type }); else if (pat === 'event') q.push({ t, ev: type });
+    else if (pat === 'line') for (let i = 0; i < n; i++) q.push({ t, type, x: n === 1 ? (a || 90) : 22 + (136 / (n - 1)) * i });
+    else if (pat === 'stream') for (let i = 0; i < n; i++) q.push({ t: t + i * 0.5, type, x: a || 90 });
+    else if (pat === 'vee') [[0, 0], [-24, -14], [24, -14], [-48, -28], [48, -28]].slice(0, n).forEach(([dx, dy]) => q.push({ t, type, x: 90 + dx, y: -14 + dy }));
+    else if (pat === 'rain') for (let i = 0; i < n; i++) q.push({ t: t + rand(0, a || 4), type, x: rand(16, 164) });
+    else if (pat === 'side') for (let i = 0; i < n; i++) q.push({ t: t + i * 0.55, type, side: a || 1, y: 36 + (i % 3) * 22 });
+  }
+  q.sort((a, b) => a.t - b.t);
+  const cnt = {}; // 대책 카드가 있으면 그 배출원의 먼지몬이 절반만 나옴
+  return q.filter((e) => { if (!e.type || !CUT[e.type] || !has(CUT[e.type])) return true; cnt[e.type] = (cnt[e.type] || 0) + 1; if (cnt[e.type] % 2) return true; G.cut++; G.sCut++; return false; });
+}
+function spawn(type, x, y = -14, o) {
+  const M = MON[type], e = Object.assign({ type, x, y, x0: x, hp: M.hp, r: M.r, t: 0, ph: rand(0, 6), hit: 0, vy: M.vy }, o);
+  if (type === 'stack') { e.stop = rand(58, 118); e.fire = rand(1.2, 2.2); e.life = 9; }
+  enemies.push(e); if (!e.demo) seen(type); return e;
+}
+function burst(x, y, col, n = 8, sp = 60) { for (let i = 0; i < n; i++) { const a = rand(0, 6.28), v = rand(sp * 0.3, sp); parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: rand(0.25, 0.6), col, s: Math.random() < 0.4 ? 2 : 1 }); } }
+function pop(x, y, str, col = '#fff') { nums.push({ x, y, str, col, life: 0.8 }); }
+
+/* ---------- 맞히기 · 놓치기 · 다치기 ---------- */
+function kill(e, quiet) {
+  const M = MON[e.type]; e.dead = true; G.kills++; burst(e.x, e.y, M.col, 9); burst(e.x, e.y, '#ffffff', 3, 40);
+  G.combo = G.comboT > 0 ? G.combo + 1 : 1; G.comboT = 1.3; const mul = G.combo >= 20 ? 3 : G.combo >= 8 ? 2 : 1, sc = M.sc * mul; G.score += sc; pop(e.x, e.y - 6, '+' + sc, mul > 1 ? '#ffcd75' : '#ffffff');
+  if (!quiet) AU.boom();
+  if (e.type === 'dust' && !has('site')) for (const s of [-1, 1]) spawn('mini', e.x + s * 5, e.y, { vx: s * 14 });
+  if (!quiet && (Math.random() < 0.12 || (!G.tipMask && G.stage === 0 && G.kills === 3))) { const r = Math.random(); items.push({ x: e.x, y: e.y, kind: !G.tipMask ? 'mask' : r < 0.36 ? 'power' : r < 0.6 ? 'mask' : r < 0.76 && P.hp < P.max ? 'heart' : 'star' }); }
+}
+function leak(e) {
+  e.dead = true; G.leaks++; G.sLeak++; G.pm += MON[e.type].leak * (has('sweep') ? 0.5 : 1); burst(clamp(e.x, 6, 174), TOWN + 2, '#b39a6b', 6, 30);
+  if (has('sweep') && Math.random() < 0.3) pop(clamp(e.x, 20, 160), TOWN - 4, '-', '#73eff7');
+}
+function hurt() {
+  if (P.inv > 0 || !G.run) return;
+  if (P.shield) { P.shield = false; P.inv = 1; AU.item(); toast('😷 마스크가 막아 줬어요!'); burst(P.x, P.y, '#ffffff', 10); return; }
+  P.hp--; P.inv = 1.8; G.shake = 0.35; G.flash = 0.25; AU.hurt(); burst(P.x, P.y, '#ff4d6d', 12); G.combo = 0;
+  if (P.pow > P.hero.pow) P.pow--;
+  if (P.hp <= 0) gameOver();
+}
+const canAlert = () => G.alertCD <= 0 && ((G.pm > 50 && G.fc > 50) || G.fc > 75);
+function fireAlert() { // 비상저감조치: 화면의 먼지몬을 한꺼번에 줄이고, 한동안 덜 나오고 느려짐
+  if (!G.run || G.mode !== 'play' || !canAlert()) { if (G.run && G.mode === 'play') { AU.bad(); toast(G.alertCD > 0 ? `방금 발령했어요. ${Math.ceil(G.alertCD)}초 뒤에 다시` : '아직 발령 기준이 아니에요 (오늘·내일 모두 50 초과, 또는 내일 75 초과)'); } return; }
+  const up = has('drill'); G.alerts++; G.alertCD = up ? 12 : 20; G.calm = 8; G.stag = 0; G.pm = Math.max(16, G.pm - (up ? 30 : 24)); G.flash = 0.5; G.shake = 0.4; G.score += 300; AU.alarm(); AU.big();
+  for (const e of enemies) { e.hp -= up ? 6 : 4; if (e.hp <= 0) kill(e, true); else e.hit = 0.2; }
+  soots = []; const b = G.boss; if (b) { if (b.shield) { b.shield = false; b.stun = 3; toast('💥 고농도 돔이 깨졌어요! 지금 공격!'); } b.hp -= MON[b.kind].hp * 0.12; b.hit = 0.3; if (b.hp <= 0) bossDown(); }
+  banner('🚨 비상저감조치 발령!', '5등급 차량 운행제한 · 공공기관 2부제 · 석탄발전 상한제약 · 공사시간 조정 · 도로 청소 확대');
+}
+
+/* ---------- 대장 ---------- */
+function bossIn(kind) { const M = MON[kind], hp = M.hp * (kind === 'giant' && has('coal') ? 0.7 : 1); G.boss = { kind, x: 90, y: -30, hp, max: hp, t: 0, a1: 2, a2: 4, hit: 0, shield: false, stun: 0, ph: 1 }; seen(kind); AU.music('boss'); banner(`⚠ ${M.name} 등장!`, M.from); }
+function updateBoss(dt) {
+  const b = G.boss; if (!b) return; b.t += dt; if (b.hit > 0) b.hit -= dt;
+  if (b.y < 58) { b.y += 40 * dt; return; }
+  if (b.stun > 0) { b.stun -= dt; return; }
+  const low = b.hp < b.max * 0.5; b.x = 90 + Math.sin(b.t * (b.kind === 'giant' ? 0.7 : 0.5)) * (b.kind === 'giant' ? 52 : 44);
+  if (b.kind === 'giant') {
+    if ((b.a1 -= dt) <= 0) { b.a1 = low ? 1.2 : 1.8; for (const d of [-0.36, 0, 0.36]) soots.push({ x: b.x, y: b.y + 18, vx: Math.sin(d) * 78, vy: Math.cos(d) * 78, r: 3, img: IMG.soot }); }
+    if ((b.a2 -= dt) <= 0) { b.a2 = low ? 4.5 : 6.5; spawn('smog', b.x - 20, b.y + 6); spawn('smog', b.x + 20, b.y + 6); }
+  } else {
+    if (b.ph === 1 && b.hp < b.max * 0.55) { b.ph = 2; b.shield = true; G.stag = 99; banner('🌫 대기 정체! 고농도 돔', '농도가 치솟아요. 🚨 비상저감조치로 돔을 깨세요!'); AU.alarm(); }
+    if ((b.a1 -= dt) <= 0) { b.a1 = b.ph === 3 ? 2 : 3; const n = b.ph === 3 ? 10 : 8, off = rand(0, 1); for (let i = 0; i < n; i++) { const a = (i + off) / n * 6.283; soots.push({ x: b.x, y: b.y + 6, vx: Math.cos(a) * 52, vy: Math.sin(a) * 52, r: 3, img: IMG.orb }); } }
+    if ((b.a2 -= dt) <= 0) { b.a2 = b.ph === 3 ? 4 : 5.5; spawn(pick(['smog', 'ember', 'dust']), b.x - 22, b.y + 8); spawn(pick(['smog', 'ember']), b.x + 22, b.y + 8); }
+    if (b.ph === 2 && !b.shield) { b.ph = 3; }
+  }
+}
+function bossDown() {
+  const b = G.boss; if (!b) return; const M = MON[b.kind]; G.boss = null; G.score += M.sc; G.shake = 0.8; G.flash = 0.6; AU.big(); for (let i = 0; i < 6; i++) burst(b.x + rand(-18, 18), b.y + rand(-14, 14), i % 2 ? M.col : '#ffffff', 14, 90);
+  pop(b.x, b.y, '+' + M.sc, '#ffcd75'); enemies.forEach((e) => kill(e, true)); soots = []; G.stag = 0;
+}
+
+/* ---------- 매 순간 ---------- */
+const keys = {};
+function update(dt) {
+  G.t += dt; if (G.shake > 0) G.shake -= dt; if (G.flash > 0) G.flash -= dt;
+  for (const p of parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 60 * dt; p.life -= dt; } parts = parts.filter((p) => p.life > 0);
+  for (const n of nums) { n.y -= 16 * dt; n.life -= dt; } nums = nums.filter((n) => n.life > 0);
+  if (!G.run) return;
+  // 움직이기
+  if (G.auto) autopilot();
+  const kx = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0), ky = (keys.ArrowDown || keys.KeyS ? 1 : 0) - (keys.ArrowUp || keys.KeyW ? 1 : 0);
+  if (kx || ky) { P.tx = clamp(P.x + kx * 40, 10, 170); P.ty = clamp(P.y + ky * 40, 150, 282); }
+  const dx = P.tx - P.x, dy = P.ty - P.y, d = Math.hypot(dx, dy); if (d > 0.4) { const m = Math.min(d, 210 * P.hero.speed * dt); P.x += (dx / d) * m; P.y += (dy / d) * m; }
+  if (P.inv > 0) P.inv -= dt;
+  if (G.mode === 'bonus') return updateBonus(dt);
+  G.st += dt; G.comboT -= dt; if (G.alertCD > 0) G.alertCD -= dt; if (G.calm > 0) G.calm -= dt;
+  // 먼지몬 내보내기 (비상저감조치 직후에는 절반만)
+  while (G.qi < G.queue.length && G.queue[G.qi].t <= G.st) { const q = G.queue[G.qi++]; if (q.boss) bossIn(q.boss); else if (q.ev === 'calm') { G.stag = 9; banner('🌫 대기 정체!', '바람이 멈춰 먼지가 쌓여요. 농도가 치솟습니다'); AU.alarm(); } else if (!(G.calm > 0 && G.qi % 2)) { if (q.side) spawn(q.type, q.side > 0 ? -12 : W + 12, q.y, { side: q.side }); else spawn(q.type, q.x, q.y); } }
+  // 물방울 쏘기
+  if ((P.cd -= dt) <= 0) { P.cd = 0.2; AU.shot(); const y = P.y - 8; if (P.pow === 1) shots.push({ x: P.x, y, vx: 0 }); else if (P.pow === 2) shots.push({ x: P.x - 3, y, vx: 0 }, { x: P.x + 3, y, vx: 0 }); else shots.push({ x: P.x, y: y - 2, vx: 0 }, { x: P.x - 5, y, vx: -20 }, { x: P.x + 5, y, vx: 20 }); }
+  if (has('drone') && (P.dcd -= dt) <= 0) { P.dcd = 0.5; shots.push({ x: P.x + Math.sin(G.t * 2) * 13, y: P.y - 2, vx: 0 }); }
+  for (const s of shots) { s.y -= 250 * dt; s.x += s.vx * dt; }
+  for (const s of soots) { s.x += s.vx * dt; s.y += s.vy * dt; if (Math.hypot(s.x - P.x, s.y - P.y) < s.r + 4) { s.dead = true; hurt(); } }
+  const slow = G.calm > 0 ? 0.6 : 1;
+  for (const e of enemies) {
+    e.t += dt; if (e.hit > 0) e.hit -= dt;
+    if (e.type === 'smog') { e.y += e.vy * slow * dt; e.x = e.x0 + Math.sin(e.t * 1.6 + e.ph) * 7; }
+    else if (e.type === 'dust' || e.type === 'mini') { e.y += e.vy * slow * dt; e.x = clamp(e.x + (e.vx || 0) * dt, 6, 174); }
+    else if (e.type === 'ember') { e.y += e.vy * slow * dt; e.x = clamp(e.x0 + Math.sin(e.t * 4.5 + e.ph) * 26, 8, 172); }
+    else if (e.type === 'stack') { if (e.y < e.stop) e.y += 30 * dt; else if (e.life > 0) { e.life -= dt; e.x = clamp(e.x0 + Math.sin(e.t * 0.9 + e.ph) * 16, 12, 168); if ((e.fire -= dt) <= 0) { e.fire = 2.4; const a = Math.atan2(P.y - e.y, P.x - e.x); soots.push({ x: e.x, y: e.y + 8, vx: Math.cos(a) * 60, vy: Math.sin(a) * 60, r: 3, img: IMG.soot }); } } else e.y += 38 * dt; }
+    else if (e.type === 'sand') { e.x += 44 * e.side * slow * dt; e.y += e.vy * slow * dt; }
+    if (e.dead) continue;
+    if (e.y > TOWN + 2 || (e.type === 'sand' && (e.side > 0 ? e.x > W + 14 : e.x < -14))) { leak(e); continue; }
+    if (Math.hypot(e.x - P.x, e.y - P.y) < e.r + 4) { hurt(); e.hp -= 2; if (e.hp <= 0) kill(e); }
+  }
+  updateBoss(dt);
+  const b = G.boss;
+  for (const s of shots) { // 물방울이 맞았는지
+    if (s.y < -8) { s.dead = true; continue; }
+    if (b && G.boss === b && b.y > 0 && Math.abs(s.x - b.x) < MON[b.kind].r + 2 && Math.abs(s.y - b.y) < MON[b.kind].r) { s.dead = true; if (b.shield) { burst(s.x, s.y, '#d7ccf0', 2, 30); continue; } b.hp -= 1; b.hit = 0.06; AU.hit(); burst(s.x, s.y, '#ffffff', 2, 30); if (b.hp <= 0) bossDown(); continue; }
+    for (const e of enemies) if (!e.dead && Math.abs(s.x - e.x) < e.r + 2 && Math.abs(s.y - e.y) < e.r + 2) { s.dead = true; e.hp -= 1; e.hit = 0.08; if (e.hp <= 0) kill(e); else AU.hit(); break; }
+  }
+  if (b && G.boss === b && b.y > 0 && Math.hypot(b.x - P.x, b.y - P.y) < MON[b.kind].r + 3) hurt();
+  for (const it of items) { // 떨어지는 물건 줍기
+    const dd = Math.hypot(it.x - P.x, it.y - P.y); if (dd < 30) { it.x += ((P.x - it.x) / dd) * 90 * dt; it.y += ((P.y - it.y) / dd) * 90 * dt; } else it.y += 38 * dt;
+    if (dd < 9) { it.dead = true; AU.item(); if (it.kind === 'power') { if (P.pow < 3) { P.pow++; pop(P.x, P.y - 12, '+', '#73eff7'); } else { G.score += 100; pop(P.x, P.y - 12, '+100'); } } else if (it.kind === 'heart') { if (P.hp < P.max) P.hp++; else G.score += 100; } else if (it.kind === 'mask') { P.shield = true; if (!G.tipMask) { G.tipMask = 1; toast('😷 KF94 마스크를 썼어요! 먼지를 한 번 막아 줘요'); } } else { G.score += 150; pop(P.x, P.y - 12, '+150', '#ffcd75'); } }
+    else if (it.y > H + 8) it.dead = true;
+  }
+  enemies = enemies.filter((e) => !e.dead); shots = shots.filter((s) => !s.dead); soots = soots.filter((s) => !s.dead && s.y < H + 8 && s.y > -20 && s.x > -10 && s.x < W + 10); items = items.filter((i) => !i.dead);
+  // 농도: 놓친 먼지만큼 오르고, 시간이 지나면 조금씩 흩어짐. 내일 예보는 지금 화면의 먼지몬을 보고 어림
+  if (G.stag > 0) { G.stag -= dt; G.pm += 6.4 * dt; }
+  G.pm = Math.max(14, G.pm - 1.1 * dt); let threat = G.stag > 0 ? 18 : 0; for (const e of enemies) threat += MON[e.type].leak * 0.6; if (b && b.shield) threat += 12;
+  G.fc = lerp(G.fc, G.pm + threat - 3, Math.min(1, dt * 3)); G.pmSum += G.pm * dt; G.pmT += dt; G.sPm += G.pm * dt; G.sT += dt;
+  if (canAlert() && !G.tipAlert) { G.tipAlert = 1; toast('🚨 발령 기준이 됐어요! 오른쪽 아래 단추(또는 Space)를 눌러요'); }
+  if (G.qi >= G.queue.length && !enemies.length && !G.boss && G.mode === 'play') stageClear();
+}
+function autopilot() { // 시험용 자동 조종
+  let t = null; for (const e of enemies) if (!t || e.y > t.y) t = e; if (G.boss) t = t || G.boss; let x = t ? t.x : 90; for (const s of soots) if (s.y < P.y && s.y > P.y - 50 && Math.abs(s.x - P.x) < 12) x = P.x + (s.x > P.x ? -30 : 30);
+  P.tx = clamp(x, 10, 170); P.ty = 250; if (canAlert()) fireAlert(); if (G.mode === 'bonus') { let it = null; for (const q of bItems) if (q.good && (!it || q.y > it.y)) it = q; if (it) P.tx = it.x; }
+}
+
+/* ---------- 보너스 판: 고농도 날 챙기기 (좋은 것만 받기) ---------- */
+const BON = [['😷', 1, '나갈 땐 보건용 마스크!'], ['💧', 1, '물을 자주 마셔요'], ['🍊', 1, '과일·채소를 챙겨 먹어요'], ['🧼', 1, '돌아오면 깨끗이 씻어요'], ['🚌', 1, '자가용 대신 대중교통'], ['🏠', 1, '바깥 활동은 줄이고 실내에서'], ['⚽', 0, '매우 나쁜 날엔 바깥 운동을 쉬어요'], ['🚗', 0, '자가용은 먼지를 더 만들어요'], ['🔥', 0, '태우면 먼지가 더 생겨요']];
+function updateBonus(dt) {
+  const B = G.bonus; B.t -= dt; if ((B.cd -= dt) <= 0) { B.cd = 0.52; const good = Math.random() < 0.66, list = BON.filter((q) => !!q[1] === good), q = pick(list); bItems.push({ x: rand(14, 166), y: -10, vy: rand(52, 78), ch: q[0], good: q[1], say: q[2] }); }
+  for (const it of bItems) { it.y += it.vy * dt; if (Math.hypot(it.x - P.x, it.y - P.y) < 11) { it.dead = true; if (it.good) { B.good++; G.score += 100; AU.good(); pop(P.x, P.y - 12, '+100', '#ffcd75'); } else { B.bad++; G.score = Math.max(0, G.score - 50); AU.bad(); G.shake = 0.2; pop(P.x, P.y - 12, '-50', '#ff4d6d'); } if (!B.said[it.ch]) { B.said[it.ch] = 1; toast(`${it.ch} ${it.say}`); } } }
+  bItems = bItems.filter((i) => !i.dead && i.y < H + 10);
+  if (B.t <= 0) endBonus();
+}
+
+/* ---------- 그리기 ---------- */
+const mh = Array.from({ length: W }, (_, x) => 26 + Math.sin(x * 0.045) * 10 + Math.sin(x * 0.11 + 1) * 5 + Math.sin(x * 0.02 + 2) * 8);
+const sh = (() => { const a = []; let x = 0; while (x < W) { const w = 6 + ((Math.random() * 10) | 0), h = 10 + ((Math.random() * 26) | 0); for (let i = 0; i < w && x < W; i++, x++) a.push(h); x += 0; if (Math.random() < 0.3) { for (let i = 0; i < 2 && x < W; i++, x++) a.push(4); } } return a; })();
+const TOWNIMG = paint(W, H - TOWN + 6, (o) => {
+  o.r(0, 8, W, 30, '#3f7d4a'); o.r(0, 8, W, 1, '#58a05f'); o.r(0, 20, W, 5, '#6b6f7a'); for (let x = 4; x < W; x += 12) o.r(x, 22, 5, 1, '#e9e2cf');
+  const cols = ['#f2c14e', '#ef7d57', '#f4f4f4', '#73c0e8', '#f7a8b8', '#b8e08a']; let x = 3, i = 0;
+  while (x < W - 14) { const w = 12 + ((i * 5) % 7), h = 9 + ((i * 3) % 5), c = cols[i % cols.length]; o.r(x, 12 - h + 6, w, h, c); o.r(x - 1, 12 - h + 4, w + 2, 2, '#8f3f2c'); o.r(x + 2, 12 - h + 9, 3, 3, '#fff2b0'); if (w > 14) o.r(x + w - 5, 12 - h + 9, 3, 3, '#fff2b0'); o.r(x + ((w / 2) | 0) - 1, 14, 3, 4, '#6b4a3a'); x += w + 3; if (i % 2 === 0) { o.r(x + 1, 11, 2, 7, '#6b4a3a'); o.c(x + 2, 9, 3, '#38b764'); x += 7; } i++; }
+});
+const flakes = Array.from({ length: 26 }, () => ({ x: rand(0, W), y: rand(0, TOWN), v: rand(8, 22), s: rand(0, 6) })), cloudsBg = Array.from({ length: 5 }, (_, i) => ({ x: rand(0, W), y: 30 + i * 44 + rand(-8, 8), w: rand(18, 34), v: rand(3, 8) }));
+function render() {
+  const S = SKIES[STAGES[G.stage] ? STAGES[G.stage].sky : 0], haze = clamp((G.pm - 16) / 60, 0, 1), sx = G.shake > 0 ? ((Math.random() * 5) | 0) - 2 : 0, sy = G.shake > 0 ? ((Math.random() * 5) | 0) - 2 : 0;
+  g.setTransform(1, 0, 0, 1, sx, sy);
+  for (let i = 0; i < 9; i++) { g.fillStyle = rgb(mixA(mixA(S[0], S[1], i / 8), HAZE, haze * 0.72)); g.fillRect(-4, i * 33, W + 8, 34); }
+  const far = mixA(mixA(S[1], NIGHT, 0.35), HAZE, haze * 0.75), mid = mixA(mixA(S[1], NIGHT, 0.6), HAZE, haze * 0.6);
+  g.fillStyle = 'rgba(255,255,255,.55)'; for (const c of cloudsBg) { c.x -= c.v * 0.016; if (c.x < -40) c.x = W + 10; g.fillRect(c.x | 0, c.y | 0, c.w | 0, 4); g.fillRect((c.x + 4) | 0, (c.y - 3) | 0, (c.w - 10) | 0, 3); }
+  g.fillStyle = rgb(far); for (let x = 0; x < W; x++) g.fillRect(x, TOWN - mh[x] - 10, 1, mh[x] + 12);
+  g.fillStyle = rgb(mid); for (let x = 0; x < W; x++) g.fillRect(x, TOWN - sh[x], 1, sh[x] + 4);
+  g.fillStyle = haze < 0.5 ? 'rgba(255,236,150,.8)' : 'rgba(255,236,150,.3)'; for (let x = 3; x < W; x += 5) if ((x * 7) % 3 === 0 && sh[x] > 12) g.fillRect(x, TOWN - sh[x] + 3 + ((x * 3) % 6), 1, 1);
+  g.drawImage(TOWNIMG, 0, TOWN - 6);
+  for (let i = 0; i < 6; i++) { const x = 16 + i * 29, y = TOWN + 14; g.fillStyle = '#f2c9a0'; g.fillRect(x, y, 3, 3); g.fillStyle = ['#e5484d', '#41a6f6', '#ffcd75'][i % 3]; g.fillRect(x, y + 3, 3, 4); if (G.pm > 35) { g.fillStyle = '#ffffff'; g.fillRect(x, y + 2, 3, 1); } } // 농도가 높으면 시민들이 마스크를 씀
+  const snow = G.stage < 2; g.fillStyle = snow ? 'rgba(255,255,255,.8)' : G.stage === 3 ? 'rgba(255,170,195,.85)' : 'rgba(255,255,255,0)'; if (G.stage !== 2) for (const f of flakes) { f.y += f.v * 0.016; f.x += Math.sin(G.t + f.s) * 0.15; if (f.y > TOWN) { f.y = -2; f.x = rand(0, W); } g.fillRect(f.x | 0, f.y | 0, 1, 1); }
+  // 물건들
+  for (const it of items) { const im = IMG[it.kind]; g.drawImage(im, (it.x - im.width / 2) | 0, (it.y - im.height / 2 + Math.sin(G.t * 6 + it.x) * 1.5) | 0); }
+  for (const it of bItems) { const im = emoji(it.ch, 14); g.drawImage(im, (it.x - 8) | 0, (it.y - 8) | 0); }
+  for (const e of enemies) { const M = MON[e.type], im = e.hit > 0 ? M.hit : M.img[((G.t * 4 + e.ph) | 0) % 2]; g.drawImage(im, (e.x - im.width / 2) | 0, (e.y - im.height / 2) | 0); }
+  const b = G.boss; if (b) { const M = MON[b.kind], im = b.hit > 0 ? M.hit : M.img[((G.t * 3) | 0) % 2]; g.drawImage(im, (b.x - im.width / 2) | 0, (b.y - im.height / 2 + Math.sin(G.t * 2) * 2) | 0); if (b.shield) { g.strokeStyle = 'rgba(215,204,240,.9)'; g.lineWidth = 1; for (let k = 0; k < 2; k++) { g.beginPath(); g.arc(b.x, b.y, M.r + 8 + k * 3 + Math.sin(G.t * 5) * 1, 0, 6.3); g.stroke(); } }
+    const bw = 120, r = clamp(b.hp / b.max, 0, 1); g.fillStyle = '#1a1c2c'; g.fillRect(30, 44, bw, 5); g.fillStyle = b.shield ? '#d7ccf0' : '#ff4d6d'; g.fillRect(31, 45, ((bw - 2) * r) | 0, 3); }
+  for (const s of soots) g.drawImage(s.img, (s.x - s.img.width / 2) | 0, (s.y - s.img.height / 2) | 0);
+  for (const s of shots) g.drawImage(IMG.shot, (s.x - 2) | 0, (s.y - 3) | 0);
+  if (G.mode === 'play' || G.mode === 'bonus' || G.mode === 'ready') { // 주인공
+    const im = P.hero.img, px = (P.x - im.width / 2) | 0, py = (P.y - im.height / 2 + Math.sin(G.t * 5) * 1.2) | 0; if (!(P.inv > 0 && ((G.t * 14) | 0) % 2)) g.drawImage(im, px, py);
+    if (P.shield) { g.strokeStyle = '#ffffff'; g.lineWidth = 1; g.beginPath(); g.arc(P.x, P.y - 1, 12, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); }
+    if (has('drone')) g.drawImage(IMG.drone, (P.x + Math.sin(G.t * 2) * 13 - 4) | 0, (P.y - 4) | 0);
+  }
+  for (const p of parts) { g.fillStyle = p.col; g.fillRect(p.x | 0, p.y | 0, p.s, p.s); }
+  for (const n of nums) drawNum(g, n.str, n.x | 0, n.y | 0, n.col);
+  if (G.combo >= 8 && G.comboT > 0 && G.mode === 'play') drawNum(g, String(G.combo), 90, 60, '#ffcd75');
+  if (haze > 0.02) { g.fillStyle = `rgba(179,154,107,${(haze * 0.34).toFixed(3)})`; g.fillRect(-4, -4, W + 8, H + 8); } // 농도가 높으면 화면 전체가 뿌옇게
+  if (G.calm > 0) { g.fillStyle = 'rgba(115,239,247,.10)'; g.fillRect(-4, -4, W + 8, H + 8); }
+  if (G.flash > 0) { g.fillStyle = `rgba(255,255,255,${Math.min(0.8, G.flash * 1.6).toFixed(2)})`; g.fillRect(-4, -4, W + 8, H + 8); }
+  g.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+/* =========================================================
+   화면 흐름: 제목 → 주인공 고르기 → (달 소개 → 한 판 → 대책 카드) × 4 → 결과
+   ========================================================= */
+const ovl = $('#ovl'), screenEl = $('#screen');
+function show(html, cls = '') { ovl.className = 'show ' + cls; ovl.innerHTML = html; ovl.scrollTop = 0; drawMons(); const f = ovl.querySelector('.btn.mint,.card'); if (f && !matchMedia('(pointer: coarse)').matches) f.focus({ preventScroll: true }); }
+function hide() { ovl.className = ''; ovl.innerHTML = ''; }
+function toast(text) { const box = $('#toast'), d = document.createElement('div'); d.textContent = text; box.appendChild(d); setTimeout(() => d.remove(), 3300); while (box.children.length > 2) box.firstChild.remove(); }
+function banner(a, b) { const el = $('#banner'); el.innerHTML = `<b>${a}</b><span>${b || ''}</span>`; el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); }
+function hudShow(v) { $('#hud').hidden = !v; $('#pauseBtn').hidden = !v; $('#alertBtn').hidden = !v || G.mode === 'bonus'; $('#cardsRow').style.display = v ? '' : 'none'; }
+const gradeOf = (v) => (v <= 15 ? ['좋음', '#2f7de1'] : v <= 35 ? ['보통', '#2f9e6e'] : v <= 75 ? ['나쁨', '#d99a00'] : ['매우 나쁨', '#e5484d']);
+function hud() {
+  $('#hHearts').innerHTML = '♥'.repeat(Math.max(0, P.hp)) + '<i>' + '♥'.repeat(Math.max(0, P.max - P.hp)) + '</i>' + (P.shield ? ' 😷' : '');
+  $('#hStage').textContent = G.mode === 'bonus' ? `BONUS · ${Math.ceil(G.bonus.t)}초` : `${STAGES[G.stage].mon} · ${G.stage + 1}/4`;
+  $('#hScore').textContent = G.score.toLocaleString();
+  const pm = Math.round(G.pm), fc = Math.round(Math.max(0, G.fc)); $('#pmNow').textContent = pm; $('#pmFc').textContent = fc;
+  const bar = $('#pmBar'); bar.style.width = clamp(pm, 3, 100) + '%'; bar.style.background = gradeOf(pm)[1];
+  const a = $('#alertBtn'), on = canAlert(); a.classList.toggle('on', on); $('#alertSub').textContent = on ? '기준 충족!' : G.alertCD > 0 ? `${Math.ceil(G.alertCD)}초 뒤` : '기준 미달';
+}
+const CARDS = [
+  { id: 'c5', ico: '🚫', name: '5등급 차량 운행제한', fx: '매연몬이 절반만 나와요', real: '배출가스 5등급 차량은 계절관리제 기간 평일 오전 6시~오후 9시에 다닐 수 없어요. 어기면 과태료 하루 10만 원.' },
+  { id: 'coal', ico: '🏭', name: '석탄발전 줄이기', fx: '굴뚝몬 절반, 굴뚝 거인도 약해져요', real: '공공 석탄발전소를 최대 17기 멈추고, 46기는 출력을 80%로 낮춰요(상한제약).' },
+  { id: 'sweep', ico: '🧹', name: '도로 청소 늘리기', fx: '놓친 먼지로 오르는 농도가 절반', real: '교통량이 많은 도로를 하루 2회 이상 청소해요. 비상저감조치 때는 3회 이상.' },
+  { id: 'burn', ico: '🌾', name: '불법소각 막기', fx: '불티몬이 절반만 나와요', real: '영농 폐기물은 태우지 않고 모아서 수거·파쇄해요. 봄에는 일주일에 세 번 수거.' },
+  { id: 'site', ico: '🏗️', name: '공사장 날림먼지 잡기', fx: '흙먼지몬 절반, 쪼개지지도 않아요', real: '방진덮개, 적재함 밀폐, 물 뿌리기. 낡은 건설기계는 사용을 제한해요.' },
+  { id: 'drone', ico: '🛰️', name: '첨단 감시 드론', fx: '도우미 드론이 함께 쏴요', real: '드론·이동측정차·AI로 몰래 먼지를 내뿜는 사업장을 찾아내요.' },
+  { id: 'bus', ico: '🚌', name: '대중교통·걷기', fx: '하트 최대 +1, 모두 회복', real: '가까운 거리는 걷고, 자전거와 대중교통을 타면 자동차 먼지가 줄어요.' },
+  { id: 'drill', ico: '🚨', name: '비상저감조치 훈련', fx: '발령 효과가 세지고 더 자주 쓸 수 있어요', real: '고농도에 대비해 해마다 재난대응 모의훈련을 해요.' },
+];
+const cardOf = (id) => CARDS.find((c) => c.id === id);
+function sideSync() {
+  $('#cardsRow').innerHTML = G.cards.map((id) => `<span title="${cardOf(id).name}">${cardOf(id).ico}</span>`).join('');
+  $('#sideCards').innerHTML = G.cards.length ? G.cards.map((id) => { const c = cardOf(id); return `<div class="mycard"><i>${c.ico}</i><div><b>${c.name}</b><br>${c.real}</div></div>`; }).join('') : '달을 넘길 때마다 <b>대책 카드</b>를 한 장 골라요. 먼지를 쏘는 것보다 <b>배출원을 줄이는 대책</b>이 더 세답니다.';
+}
+const monCard = (k, lock) => { const M = MON[k]; return `<div class="mon ${lock ? 'lock' : ''}"><canvas data-mon="${k}"></canvas><div><b>${lock ? '???' : M.name}</b>${lock ? '아직 만나지 못했어요' : `어디서? ${M.from}<br>대책: ${M.fix}`}</div></div>`; };
+function drawMons() { ovl.querySelectorAll('canvas[data-mon]').forEach((c) => { const im = MON[c.dataset.mon].img[0]; c.width = im.width; c.height = im.height; c.style.aspectRatio = im.width + '/' + im.height; c.style.height = 'auto'; c.getContext('2d').drawImage(c.closest('.lock') ? tint(im, '#3b3f55') : im, 0, 0); }); ovl.querySelectorAll('canvas[data-hero]').forEach((c) => c.getContext('2d').drawImage(HEROES[+c.dataset.hero].img, 0, 0)); }
+function clearField() { enemies = []; shots = []; soots = []; items = []; bItems = []; G.boss = null; G.stag = 0; G.calm = 0; }
+
+function title() {
+  G.mode = 'title'; G.run = false; G.stage = 0; G.pm = 18; clearField(); hudShow(false); AU.music('title'); $('#sideInfo').innerHTML = '매년 <b>12월 1일~이듬해 3월 31일</b>은 미세먼지 계절관리제 기간이에요. 넉 달 동안 마을의 하늘을 지켜 주세요.'; G.cards = []; sideSync();
+  show(`<div class="logo"><span class="logo-k">미세먼지 계절관리제 아케이드</span><h1>하늘<br><em>수비대</em></h1><p>하늘에서 내려오는 먼지몬을 막아라!</p></div>
+    <div class="menu"><button class="btn big mint" id="tStart">▶ 시작하기</button><div class="row"><button class="btn sm plain" id="tBook">📖 도감·수첩</button><button class="btn sm plain" id="tSnd">${AU.muted ? '🔇 소리 꺼짐' : '🔊 소리 켜짐'}</button></div></div>
+    <div class="best">${store.best ? `최고 점수 ${store.best.toLocaleString()}` : '<span class="blink">PRESS START</span>'}</div>`, 'clear');
+  $('#tStart').onclick = () => { AU.init(); AU.pick(); select(); };
+  $('#tBook').onclick = () => { AU.init(); AU.pick(); book(0, title); };
+  $('#tSnd').onclick = () => { AU.init(); AU.toggle(); title(); };
+}
+function select() {
+  const stars = (n) => '★'.repeat(n) + '☆'.repeat(3 - n);
+  show(`<div class="panel box"><span class="k">PLAYER SELECT</span><h2>누구와 함께 출동할까요?</h2>
+    <div class="heroes">${HEROES.map((h, i) => `<button class="hero" data-i="${i}" aria-pressed="${i === store.hero}"><canvas data-hero="${i}" width="18" height="18"></canvas><b>${h.name}</b>${h.desc}<div class="stat">빠르기 ${stars(h.speed > 1 ? 3 : 2)}<br>물방울 ${stars(h.pow > 1 ? 3 : 2)}<br>체력 ${stars(h.hp > 3 ? 3 : 2)}</div></button>`).join('')}</div>
+    <label class="field">이름 <input id="nm" maxlength="8" placeholder="수비대원" autocomplete="off" value="${esc(store.name)}"></label>
+    <div class="rowb"><button class="btn sm plain" id="back">◀</button><button class="btn big mint" id="go" style="flex:4">출동!</button></div></div>`);
+  ovl.querySelectorAll('.hero').forEach((b) => (b.onclick = () => { store.hero = +b.dataset.i; AU.pick(); ovl.querySelectorAll('.hero').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); }));
+  $('#back').onclick = () => { AU.pick(); title(); };
+  $('#go').onclick = () => { store.name = $('#nm').value.trim().slice(0, 8); keep(); AU.pick(); startGame(); };
+}
+function startGame() {
+  Object.assign(G, { score: 0, pmSum: 0, pmT: 0, leaks: 0, kills: 0, cut: 0, alerts: 0, cards: [], deaths: 0, combo: 0, tipMask: 0, tipAlert: 0, pm: 30, fc: 30 });
+  P.hero = HEROES[store.hero] || HEROES[0]; P.max = P.hero.hp; P.hp = P.max; P.pow = P.hero.pow; P.shield = false; sideSync(); stageIntro(0);
+}
+function stageIntro(i) {
+  G.stage = i; G.mode = 'ready'; G.run = false; clearField(); P.x = P.tx = 90; P.y = P.ty = 250; hudShow(false); const S = STAGES[i];
+  $('#sideInfo').innerHTML = `<b>${S.mon} · ${S.title}</b><br>${S.story}`;
+  show(`<div class="panel box"><span class="k">STAGE ${i + 1} · ${S.mon}</span><h2>${S.title}</h2><p>${S.story}</p>${S.news.map((k) => monCard(k)).join('')}${i === 1 ? monCard('giant') : i === 3 ? monCard('king') : ''}<button class="btn big mint" id="go">시작!</button></div>`);
+  $('#go').onclick = () => { AU.pick(); beginStage(i); };
+}
+function beginStage(i) {
+  hide(); clearField(); G.mode = 'play'; G.st = 0; G.sLeak = 0; G.sCut = 0; G.sPm = 0; G.sT = 0; G.alertCD = 0; G.pm = i === 0 ? 30 : 24; G.fc = G.pm; G.queue = expand(STAGES[i].script); G.qi = 0;
+  P.x = P.tx = 90; P.y = P.ty = 250; P.inv = 1.5; G.run = true; hudShow(true); sideSync(); AU.music(i); banner(`STAGE ${i + 1}`, `${STAGES[i].mon} · ${STAGES[i].title}`);
+}
+function stageClear() {
+  G.run = false; G.mode = 'card'; AU.music(null); AU.clear(); keep(); const i = G.stage, avg = Math.round(G.sPm / Math.max(1, G.sT)), bonus = Math.max(0, (40 - avg) * 20) + P.hp * 100; G.score += bonus; hudShow(false);
+  show(`<div class="head"><b>STAGE CLEAR!</b><span>${STAGES[i].mon}을 지켜 냈어요</span></div><div class="panel box"><div class="stats"><div>이번 달 평균 농도<b style="color:${gradeOf(avg)[1]}">${avg}㎍/㎥</b></div><div>놓친 먼지몬<b>${G.sLeak}</b></div><div>대책으로 막은 먼지몬<b>${G.sCut}</b></div><div>보너스 점수<b>+${bonus}</b></div></div>
+    <p>${G.sCut ? `대책 카드 덕분에 먼지몬 <b>${G.sCut}마리</b>가 아예 나오지 않았어요. 쏘는 것보다 <b>줄이는 것</b>이 먼저!` : i < 3 ? '먼지몬은 쏘는 것보다 <b>나오지 않게 줄이는 것</b>이 더 좋아요. 대책 카드를 골라 보세요.' : '넉 달 동안 정말 수고했어요!'}</p>
+    <button class="btn big mint" id="go">${i < 3 ? '대책 카드 고르기' : '결과 보기'}</button></div>`);
+  $('#go').onclick = () => { AU.pick(); if (i < 3) chooseCard(i); else ending(); };
+}
+function chooseCard(i) {
+  const must = ['coal', 'burn', 'drill'][i], rest = shuffle(CARDS.filter((c) => !has(c.id) && c.id !== must && (i > 0 || !['burn', 'site', 'drill'].includes(c.id)))).slice(0, 2), offer = shuffle([cardOf(must), ...rest].filter((c) => c && !has(c.id)));
+  show(`<div class="head"><b>대책 카드</b><span>${STAGES[i + 1].mon}을 대비해 한 장을 골라요</span></div><div class="cards">${offer.map((c) => `<button class="card" data-id="${c.id}"><i>${c.ico}</i><div><b>${c.name}</b><em>${c.fx}</em><small>${c.real}</small></div></button>`).join('')}</div>`);
+  ovl.querySelectorAll('.card').forEach((b) => (b.onclick = () => { const id = b.dataset.id; G.cards.push(id); AU.good(); if (id === 'bus') { P.max++; P.hp = P.max; } sideSync(); if (i === 1) bonusIntro(); else stageIntro(i + 1); }));
+}
+function bonusIntro() {
+  G.mode = 'ready'; hudShow(false);
+  show(`<div class="panel box"><span class="k">BONUS STAGE</span><h2>고농도 날 챙기기</h2><p>먼지가 <b>매우 나쁨</b>인 날이에요! 하늘에서 떨어지는 것 가운데 <b>건강을 지키는 것만</b> 받아요.</p>
+    <ul><li>받기: 😷 마스크 · 💧 물 · 🍊 과일 · 🧼 씻기 · 🚌 대중교통 · 🏠 실내</li><li>피하기: ⚽ 바깥 운동 · 🚗 자가용 · 🔥 태우기</li></ul><p>좋은 것을 8개 넘게 받으면 ♥ 하나 회복!</p><button class="btn big mint" id="go">시작!</button></div>`);
+  $('#go').onclick = () => { AU.pick(); hide(); clearField(); G.mode = 'bonus'; G.bonus = { t: 24, cd: 0.3, good: 0, bad: 0, said: {} }; G.pm = 24; P.x = P.tx = 90; P.y = P.ty = 262; G.run = true; hudShow(true); AU.music(2); banner('BONUS!', '건강을 지키는 것만 받아요'); };
+}
+function endBonus() {
+  G.run = false; G.mode = 'card'; bItems = []; AU.music(null); AU.clear(); hudShow(false); const B = G.bonus, heal = B.good >= 8 && P.hp < P.max; if (heal) P.hp++;
+  show(`<div class="head"><b>BONUS 끝!</b><span>좋은 것 ${B.good}개 · 나쁜 것 ${B.bad}개${heal ? ' · ♥ 회복!' : ''}</span></div><div class="panel box"><span class="k">고농도 미세먼지 7가지 대응요령</span>
+    <ul><li><b>외출은 줄이기</b> (바깥 모임·운동 쉬기)</li><li>나갈 땐 <b>보건용 마스크</b> (KF80·KF94·KF99)</li><li>큰길·공사장처럼 <b>먼지 많은 곳 피하기</b>, 뛰지 않기</li><li>돌아오면 <b>손·발·눈·코 씻기</b></li><li><b>물과 과일·채소</b> 챙기기</li><li>주방 후드·물걸레·공기청정기로 <b>실내 공기 관리</b></li><li>자가용 대신 <b>대중교통</b></li></ul><button class="btn big mint" id="go">다음 달로!</button></div>`);
+  $('#go').onclick = () => { AU.pick(); stageIntro(2); };
+}
+function gameOver() {
+  G.run = false; G.mode = 'over'; G.deaths++; AU.music(null); AU.lose(); hudShow(false); const tip = G.cards.length ? '🚨 단추가 빨갛게 켜지면 바로 눌러 보세요. 화면의 먼지몬이 한꺼번에 줄어요.' : '먼지몬을 다 쏘려 하기보다, 위험할 땐 피하는 게 먼저예요. 😷 마스크를 주우면 한 번 막아 줘요.';
+  show(`<div class="head"><b>콜록콜록…</b><span>먼지를 너무 많이 마셨어요</span></div><div class="panel box"><p>${tip}</p><div class="rowb"><button class="btn plain" id="home">처음으로</button><button class="btn mint" id="re" style="flex:2">${STAGES[G.stage].mon} 다시 도전</button></div></div>`);
+  $('#re').onclick = () => { AU.pick(); G.score = Math.floor(G.score * 0.8); P.hp = P.max; P.pow = P.hero.pow; P.shield = false; beginStage(G.stage); };
+  $('#home').onclick = () => { AU.pick(); title(); };
+}
+function ending() {
+  G.mode = 'end'; G.run = false; hudShow(false); const avg = Math.round(G.pmSum / Math.max(1, G.pmT)), gr = avg <= F.goal ? 'S' : avg <= 24 ? 'A' : avg <= 32 ? 'B' : 'C', rank = { S: '푸른하늘 수비대장', A: '든든한 수비대원', B: '새내기 수비대원', C: '수습 수비대원' }[gr];
+  G.rank = rank; G.avg = avg; G.grade = gr; store.best = Math.max(store.best, G.score); store.clear = (store.clear || 0) + 1; keep(); AU.music('title'); AU.clear();
+  show(`<div class="panel box"><span class="k">계절관리제 넉 달 완주!</span><div class="grade">${gr}</div><h2 style="text-align:center">${esc(store.name || '수비대원')} · ${rank}</h2>
+    <p style="text-align:center">계절 평균 초미세먼지 <b style="color:${gradeOf(avg)[1]}">${avg}㎍/㎥</b> (목표 ${F.goal})${avg <= F.goal ? ' · 목표 달성!' : ''}</p>
+    <div class="stats"><div>점수<b>${G.score.toLocaleString()}</b></div><div>놓친 먼지몬<b>${G.leaks}</b></div><div>대책으로 막은 먼지몬<b>${G.cut}</b></div><div>비상저감조치 발령<b>${G.alerts}회</b></div></div>
+    <span class="k">오늘 배운 것</span><ul><li><b>계절관리제</b>: 매년 12월 1일~이듬해 3월 31일, 평소보다 강하게 미세먼지를 줄여요.</li><li><b>비상저감조치</b>: 오늘 평균 50 초과 + 내일 50 초과 예보(또는 내일 75 초과 예보)면 발령해요.</li><li>먼지는 <b>나오는 곳에서 줄이는 게</b> 가장 좋아요: ${G.cards.map((id) => cardOf(id).name).join(', ') || '대책 카드'}.</li><li>짙은 날엔 <b>외출 줄이기·보건용 마스크·씻기·대중교통</b>.</li></ul>
+    <div class="rowb"><button class="btn sm plain" id="eCert">인증서 저장</button><button class="btn sm plain" id="eShare">공유</button><button class="btn sm plain" id="eBook">📖 수첩</button></div><button class="btn big mint" id="eRe" style="margin-top:calc(var(--u) * 4)">한 판 더!</button></div>`);
+  $('#eRe').onclick = () => { AU.pick(); title(); };
+  $('#eBook').onclick = () => { AU.pick(); book(2, ending); };
+  $('#eCert').onclick = () => cert().toBlob((b) => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = '하늘수비대_인증서.png'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); });
+  $('#eShare').onclick = () => cert().toBlob(async (b) => { const text = `하늘 수비대 ${rank}! 계절 평균 초미세먼지 ${avg}㎍/㎥, ${G.score.toLocaleString()}점`, file = new File([b], 'sky-guard.png', { type: 'image/png' }); try { if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], text }); else if (navigator.share) await navigator.share({ text, url: location.href }); else { await navigator.clipboard.writeText(`${text} ${location.href}`); toast('공유 문구를 복사했어요'); } } catch (e) { /* 취소 */ } });
+}
+function cert() { // 인증서 그림 (이 기기 안에서만 만들어짐)
+  const c = document.createElement('canvas'); c.width = 1080; c.height = 1350; const x = c.getContext('2d'), FONT = "'Pretendard','Malgun Gothic','Apple SD Gothic Neo',sans-serif"; x.imageSmoothingEnabled = false;
+  for (let i = 0; i < 9; i++) { x.fillStyle = rgb(mixA(SKIES[3][0], SKIES[3][1], i / 8)); x.fillRect(0, i * 150, 1080, 150); }
+  x.fillStyle = 'rgba(255,255,255,.8)'; for (const [cx, cy, w] of [[120, 170, 220], [760, 120, 200], [520, 300, 160]]) { x.fillRect(cx, cy, w, 36); x.fillRect(cx + 36, cy - 28, w - 90, 28); }
+  x.drawImage(TOWNIMG, 0, 0, W, TOWNIMG.height, 0, 1350 - TOWNIMG.height * 6, 1080, TOWNIMG.height * 6);
+  x.fillStyle = '#f4f1de'; x.fillRect(90, 380, 900, 640); x.lineWidth = 12; x.strokeStyle = '#1a1c2c'; x.strokeRect(90, 380, 900, 640); x.fillStyle = '#1a1c2c'; x.fillRect(102, 1020, 900, 14);
+  x.drawImage(P.hero.img, 540 - 144, 130, 288, 288);
+  x.textAlign = 'center'; x.fillStyle = '#1a1c2c'; x.font = `900 44px ${FONT}`; x.fillText('미세먼지 계절관리제 아케이드', 540, 480); x.font = `900 100px ${FONT}`; x.fillText('하늘 수비대', 540, 590);
+  x.fillStyle = '#c2410c'; x.font = `900 64px ${FONT}`; x.fillText(`${store.name || '수비대원'} · ${G.rank}`, 540, 700);
+  x.fillStyle = '#1a1c2c'; x.font = `700 40px ${FONT}`; x.fillText(`계절 평균 초미세먼지 ${G.avg}㎍/㎥ (목표 ${F.goal})`, 540, 790); x.fillText(`점수 ${G.score.toLocaleString()} · 등급 ${G.grade}`, 540, 850);
+  const d = new Date(); x.font = `700 32px ${FONT}`; x.fillStyle = '#566c86'; x.fillText(`${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}${ORG ? ' · ' + ORG : ''}`, 540, 930); x.fillText('계절관리제는 매년 12월 1일 ~ 이듬해 3월 31일', 540, 980);
+  return c;
+}
+
+/* ---------- 도감 · 수첩 ---------- */
+const PILL = (c, t) => `<span class="pill" style="background:${c}">${t}</span>`;
+const NOTES = [
+  ['미세먼지란?', `<h3>미세먼지는 아주 작은 먼지</h3><p>눈에 보이지 않을 만큼 작아요. 지름 10㎛ 이하는 <b>미세먼지(PM10)</b>, 2.5㎛ 이하는 <b>초미세먼지(PM2.5)</b>예요. 초미세먼지는 머리카락 굵기(50~70㎛)의 <b>약 20~30분의 1</b>이에요. (1㎛는 1mm의 천 분의 1)</p>
+   <h3>왜 조심해야 할까?</h3><p>너무 작아서 코털과 기관지에서 걸러지지 않고 <b>폐 깊숙이</b> 들어가요. 농도가 높은 날에는 기침이 나거나 눈과 목이 따가울 수 있고, 어린이·어르신·호흡기가 약한 사람은 더 조심해야 해요.</p>
+   <h3>어디서 나올까?</h3><ul><li>자동차 배기가스, 공장·발전소 굴뚝, 보일러 난방</li><li>쓰레기나 농작물 찌꺼기 태우기, 공사장과 도로의 흙먼지</li><li>굴뚝과 배기구에서 나온 가스가 공기 중에서 초미세먼지로 <b>변하기도</b> 해요</li><li>봄철 황사처럼 자연에서 오는 먼지도 있어요</li></ul>
+   <h3>오늘 공기는 무슨 색? (초미세먼지 예보 등급)</h3><table><tr><th>${PILL('#2f7de1', '좋음')} 0~15</th><td>마음껏 뛰어놀아요</td></tr><tr><th>${PILL('#2f9e6e', '보통')} 16~35</th><td>평소처럼 지내요. 몸이 약한 친구는 몸 상태를 살펴요</td></tr><tr><th>${PILL('#d99a00', '나쁨')} 36~75</th><td>오래 하거나 힘든 바깥 활동을 줄이고, 나갈 땐 보건용 마스크</td></tr><tr><th>${PILL('#e5484d', '매우 나쁨')} 76 이상</th><td>바깥 활동을 피하고 실내에서 지내요</td></tr></table>
+   <h3>농도가 높은 날에는</h3><p>① 외출 줄이기 ② 보건용 마스크(KF80·94·99) ③ 큰길·공사장은 피하고 뛰지 않기 ④ 돌아와서 씻기 ⑤ 물과 과일·채소 ⑥ 실내 공기 관리(주방 후드·물걸레·공기청정기) ⑦ 자가용 대신 대중교통. 자세한 내용은 ‘시민 행동요령’ 쪽에 있어요.</p>`],
+  ['계절관리제', `<h3>미세먼지 계절관리제란?</h3><p>겨울과 봄에는 서풍이 불어오고, 공기가 머물고(대기 정체), 난방 연료 사용이 늘어 미세먼지가 평소보다 짙어져요. 그래서 <b>매년 12월 1일부터 이듬해 3월 31일까지</b> 넉 달 동안 평소보다 강한 저감 대책과 건강 보호 대책을 시행하는 제도예요. 2019년에 시작했어요.</p>
+   <h3>성과와 목표</h3><ul><li>이 기간 초미세먼지 농도: 제도 도입 초기 <b>33㎍/㎥ → 20㎍/㎥</b> (약 40% 감소)</li><li>${F.round} 목표: <b>${F.goal}㎍/㎥</b>, 초미세먼지와 생성물질 약 12.9만 톤 감축</li></ul>
+   <h3>주요 대책 (${F.round})</h3><ul><li>공공 석탄발전 최대 <b>17기 가동정지</b>, 최대 46기 출력 80% 제한(상한제약)</li><li><b>배출가스 5등급 차량 운행제한</b> (수도권과 6대 특·광역시)</li><li>대형사업장 416곳 추가 감축, 첨단장비·AI로 불법배출 감시</li><li>영농폐기물 수거 확대로 <b>불법소각 방지</b></li><li>교통량 많은 도로 하루 2회 이상 청소, 공사장 날림먼지 단속</li><li>어린이집·학교·요양시설 등 실내공기질 점검, 옥외근로자 보호</li></ul>
+   <h3>3월 봄철 총력대응</h3><p>3월은 한 해 중 초미세먼지가 가장 짙고(평균 26㎍/㎥) ‘나쁨’ 일수도 가장 많은(8일) 달이에요. 그래서 3월 한 달은 사업장 점검, 영농폐기물 수거(주 1→3회), 공회전 단속, 석탄발전 가동정지 확대(17→29기, 잠정) 등 대책을 더 강화해요.</p>`],
+  ['5등급 운행제한', `<h3>배출가스 5등급 차량 운행제한</h3><table><tr><th>대상</th><td>배출가스 5등급 차량 (저공해조치를 하지 않은 차)</td></tr><tr><th>지역</th><td>수도권과 6대 특·광역시</td></tr><tr><th>기간·시간</th><td>계절관리제 기간(12~3월) <b>평일 오전 6시~오후 9시</b><br>토·일요일, 공휴일 제외</td></tr><tr><th>과태료</th><td><b>하루 10만 원</b></td></tr><tr><th>단속 제외</th><td>매연저감장치(DPF) 부착 등 저공해조치 차량, 긴급차, 장애인 차량, 국가유공자 차량 등</td></tr></table>
+   <h3>내 차는 몇 등급?</h3><p>‘자동차 배출가스 등급제’ 누리집에서 차량번호로 확인할 수 있어요. 5등급 차량은 <b>매연저감장치 부착</b>이나 <b>조기폐차</b> 보조금을 지원받을 수 있어요.</p><p>비상저감조치가 발령된 날에도 5등급 차량 운행이 제한돼요. 세부 기준은 지역마다 다를 수 있으니 사는 곳 지자체 안내를 확인하세요.</p>`],
+  ['비상저감조치', `<h3>비상저감조치란?</h3><p>고농도 초미세먼지(PM-2.5)가 이어질 때 짧은 기간에 공기를 개선하려고 자동차 운행을 제한하고 사업장·공사장 가동을 줄이는 조치예요.</p>
+   <h3>발령 기준 (하나만 해당해도 발령)</h3><ol><li>오늘(0~16시) 평균 <b>50㎍/㎥ 초과</b> + 내일 <b>50 초과</b> 예보</li><li>오늘 <b>주의보·경보</b> 발령 + 내일 <b>50 초과</b> 예보</li><li>내일 <b>75 초과</b> 예보</li></ol>
+   <h3>초미세먼지 위기경보 4단계</h3><table><tr><th>${PILL('#2f6fe0', '관심')}</th><td>비상저감조치 발령 기준에 해당</td></tr><tr><th>${PILL('#d9a800', '주의')}</th><td>150㎍/㎥ 이상 2시간 지속 + 다음 날 75 초과 예보, 또는 관심 2일 연속 + 1일 지속 예상</td></tr><tr><th>${PILL('#f07f1e', '경계')}</th><td>200㎍/㎥ 이상 2시간 지속 + 다음 날 150 초과 예보, 또는 주의 2일 연속 + 1일 지속 예상</td></tr><tr><th>${PILL('#e03a3a', '심각')}</th><td>400㎍/㎥ 이상 2시간 지속 + 다음 날 200 초과 예보, 또는 경계 2일 연속 + 1일 지속 예상</td></tr></table>
+   <h3>단계별 조치</h3><table><tr><th>구분</th><th>1단계(관심)</th><th>2단계(주의)</th><th>3단계(경계·심각)</th></tr>
+   <tr><th>차량</th><td>5등급 운행제한, 행정·공공기관 2부제</td><td>+ 관용차 운행 전면 제한</td><td>+ 민간 2부제(자율)</td></tr>
+   <tr><th>사업장·발전</th><td>공공사업장 가동시간 단축(배출 15~20%↓), 석탄발전 상한제약</td><td>추가 단축(25~30%↓)</td><td>+ 민간 사업장 행정지도</td></tr>
+   <tr><th>공사장</th><td>공사시간 조정·변경</td><td>+ 관급공사 노후 건설기계 제한, 일부 공정 금지</td><td>같음</td></tr>
+   <tr><th>도로 청소</th><td>청소차 하루 3회 이상</td><td>같음</td><td>+ 민간 청소차 투입</td></tr>
+   <tr><th>보호</th><td>야외수업 금지, 탄력 근무 권고, 마스크 비치</td><td>취약계층 시설 마스크 지급</td><td>야외 행사 조정 권고, 마스크 무상 배포</td></tr></table>
+   <h3>예보 등급과 경보 (초미세먼지)</h3><p>${PILL('#2f7de1', '좋음')} 0~15 ${PILL('#2f9e6e', '보통')} 16~35 ${PILL('#d99a00', '나쁨')} 36~75 ${PILL('#e5484d', '매우 나쁨')} 76 이상 (㎍/㎥)<br>주의보: 75 이상 2시간 지속 · 경보: 150 이상 2시간 지속</p>`],
+  ['시민 행동요령', `<h3>고농도 미세먼지 7가지 대응요령</h3><ol><li><b>외출은 가급적 자제하기</b>: 야외 모임, 캠프, 스포츠 등 실외 활동 최소화</li><li><b>외출할 때 보건용 마스크 쓰기</b>: 식약처 인증 KF80·KF94·KF99. 숨쉬기 불편하면 벗고 전문가와 상담</li><li><b>대기오염이 심한 곳은 피하고 활동량 줄이기</b>: 도로변·공사장에서 머무는 시간 줄이기, 격한 활동 줄이기</li><li><b>외출 후 깨끗이 씻기</b>: 손·발·눈·코를 흐르는 물에 씻고 양치</li><li><b>물과 비타민C가 풍부한 과일·야채 먹기</b></li><li><b>환기, 실내 물청소 등 실내 공기질 관리하기</b>: 조리할 때 주방 후드와 환기, 물걸레질, 공기청정기(필터 점검)</li><li><b>대기오염 유발 행위 자제하기</b>: 자가용 대신 대중교통</li></ol>
+   <h3>계절관리제, 시민이 함께하는 네 가지</h3><ol><li>가까운 거리는 걷고, 자전거와 대중교통 생활화하기</li><li>적정 실내온도를 지키고, 낭비되는 대기전력 줄이기</li><li>차를 바꿀 때는 전기차를 고르고, 친환경 운전하기</li><li>일회용품을 줄이고, 다회용 컵·장바구니 쓰기</li></ol>
+   <h3>알아 두면 좋아요</h3><ul><li>실시간 농도와 예보는 <b>에어코리아</b> 앱·누리집에서 봐요.</li><li>불법소각, 매연 차량, 공회전을 보면 지자체에 알려 주세요.</li><li>어린이·어르신·임산부·호흡기 질환자는 더 조심해요.</li></ul>`],
+];
+function book(tab, back) {
+  const tabs = ['먼지몬 도감', '대책 카드', ...NOTES.map((n) => n[0])], body = tab === 0 ? ['smog', 'dust', 'stack', 'ember', 'sand', 'giant', 'king'].map((k) => monCard(k, !store.seen[k])).join('')
+    : tab === 1 ? `<div class="note">${CARDS.map((c) => `<h3>${c.ico} ${c.name}</h3><p>${c.real}<br><b>게임에서는</b> ${c.fx}</p>`).join('')}</div>`
+    : `<div class="note">${NOTES[tab - 2][1]}<div class="src">자료: 기후에너지환경부·국무조정실 보도자료(2025.11.18., 2025.11.25., 2026.2.24.), 수원시 누리집 미세먼지 안내. ${F.round} 계절관리제 기준이며 시기와 지역에 따라 달라질 수 있어요.</div></div>`;
+  show(`<div class="panel box"><button class="btn sm plain x" id="bx">✕</button><span class="k">📖 도감 · 수첩</span><div class="tabs">${tabs.map((t, i) => `<button data-t="${i}" class="${i === tab ? 'on' : ''}">${t}</button>`).join('')}</div>${body}</div>`);
+  ovl.querySelectorAll('.tabs button').forEach((b) => (b.onclick = () => { AU.pick(); book(+b.dataset.t, back); }));
+  $('#bx').onclick = () => { AU.pick(); back(); };
+}
+function pause() {
+  if (!G.run) return; G.run = false; const mode = G.mode;
+  const menu = () => { show(`<div class="head"><b>잠깐 멈춤</b></div><div class="menu"><button class="btn big mint" id="pGo">계속하기</button><div class="row"><button class="btn sm plain" id="pBook">📖 도감·수첩</button><button class="btn sm plain" id="pSnd">${AU.muted ? '🔇 꺼짐' : '🔊 켜짐'}</button></div><button class="btn sm plain" id="pHome">처음으로</button></div>`);
+    $('#pGo').onclick = () => { hide(); G.mode = mode; G.run = true; }; $('#pBook').onclick = () => book(0, menu); $('#pSnd').onclick = () => { AU.toggle(); menu(); }; $('#pHome').onclick = () => title(); };
+  menu();
+}
+
+/* ---------- 조작 ---------- */
+function aim(e) { if (!G.run) return; const r = cv.getBoundingClientRect(); P.tx = clamp(((e.clientX - r.left) / r.width) * W, 10, 170); P.ty = clamp(((e.clientY - r.top) / r.height) * H - (e.pointerType === 'mouse' ? 0 : 24), 150, 282); }
+screenEl.addEventListener('pointerdown', (e) => { AU.init(); if (e.target === cv || e.target.id === 'hud') aim(e); });
+screenEl.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse' || e.buttons || e.pressure > 0) aim(e); });
+$('#alertBtn').onclick = () => fireAlert();
+$('#pauseBtn').onclick = () => pause();
+addEventListener('keydown', (e) => {
+  if (e.target instanceof HTMLInputElement) { if (e.key === 'Enter') { const b = $('#go'); if (b) b.click(); } return; }
+  AU.init(); keys[e.code] = true;
+  if (e.code === 'Space') { e.preventDefault(); if (G.run && G.mode === 'play') fireAlert(); else if (!e.repeat && ovl.classList.contains('show')) { const b = ovl.querySelector('#go,#tStart,#pGo,#re,#eRe'); if (b) b.click(); } }
+  else if (e.code === 'Enter' && !e.repeat && ovl.classList.contains('show') && !(e.target instanceof HTMLButtonElement)) { const b = ovl.querySelector('#go,#tStart,#pGo,#re,#eRe'); if (b) b.click(); }
+  else if ((e.code === 'KeyP' || e.code === 'Escape') && !e.repeat) { if (G.run) pause(); else { const b = $('#pGo'); if (b) b.click(); } }
+  if (e.code.startsWith('Arrow')) e.preventDefault();
+});
+addEventListener('keyup', (e) => { keys[e.code] = false; });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; if (G.run) pause(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && G.run) pause(); });
+function fit() { screenEl.style.setProperty('--u', screenEl.clientWidth / W + 'px'); }
+addEventListener('resize', fit); fit();
+
+/* ---------- 제목 화면에 떠다니는 먼지몬 · 반복 ---------- */
+let demoT = 0, hudT = 0, last = performance.now();
+function attract(dt) { if ((demoT -= dt) <= 0) { demoT = 0.8; spawn(pick(['smog', 'dust', 'ember', 'stack', 'sand', 'smog']), rand(16, 164), -14, { demo: 1, vy: rand(18, 40) }); } for (const e of enemies) { e.t += dt; e.y += e.vy * dt; if (e.y > TOWN - 20) e.dead = true; } enemies = enemies.filter((e) => !e.dead); }
+function frame(ts) { const dt = Math.min(0.034, Math.max(0, (ts - last) / 1000)); last = ts; if (G.mode === 'title') attract(dt); update(dt); render(); if (G.run && (hudT -= dt) <= 0) { hudT = 0.1; hud(); } requestAnimationFrame(frame); }
+title(); requestAnimationFrame(frame);
+if (location.hash === '#debug') window.__g = { G, P, store, MON, HEROES, step(n = 1, dt = 1 / 30) { for (let i = 0; i < n; i++) { if (G.mode === 'title') attract(dt); update(dt); } render(); if (G.run) hud(); }, get enemies() { return enemies; }, title, select, startGame, stageIntro, beginStage, stageClear, chooseCard, bonusIntro, ending, gameOver, fireAlert, pause, book };
+</script>
+</body>
+</html>
