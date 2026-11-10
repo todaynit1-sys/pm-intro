@@ -543,11 +543,12 @@ function clearField() { enemies = []; shots = []; soots = []; items = []; bItems
 function title() {
   G.mode = 'title'; G.run = false; G.stage = 0; G.pm = 18; clearField(); hudShow(false); AU.music('title'); $('#sideInfo').innerHTML = '매년 <b>12월 1일~이듬해 3월 31일</b>은 미세먼지 계절관리제 기간이에요. 넉 달 동안 마을의 하늘을 지켜 주세요.'; G.cards = []; sideSync();
   show(`<div class="logo"><span class="logo-k">미세먼지 계절관리제 아케이드</span><h1>하늘<br><em>수비대</em></h1><p>하늘에서 내려오는 먼지몬을 막아라!</p></div>
-    <div class="menu"><button class="btn big mint" id="tStart">▶ 시작하기</button><div class="row"><button class="btn sm plain" id="tBook">📖 도감·수첩</button><button class="btn sm plain" id="tSnd">${AU.muted ? '🔇 소리 꺼짐' : '🔊 소리 켜짐'}</button></div></div>
+    <div class="menu"><button class="btn big mint" id="tStart">▶ 시작하기</button><div class="row"><button class="btn sm plain" id="tBook">📖 도감·수첩</button><button class="btn sm plain" id="tSnd">${AU.muted ? '🔇 소리 꺼짐' : '🔊 소리 켜짐'}</button></div><button class="btn sm plain" id="tHq">◀ 수비대 본부로</button></div>
     <div class="best">${store.best ? `최고 점수 ${store.best.toLocaleString()}` : '<span class="blink">PRESS START</span>'}</div>`, 'clear');
   $('#tStart').onclick = () => { AU.init(); AU.pick(); select(); };
   $('#tBook').onclick = () => { AU.init(); AU.pick(); book(0, title); };
   $('#tSnd').onclick = () => { AU.init(); AU.toggle(); title(); };
+  $('#tHq').onclick = () => { location.href = '../?hq=1'; };
 }
 function select() {
   const stars = (n) => '★'.repeat(n) + '☆'.repeat(3 - n);
@@ -610,7 +611,8 @@ function ending() {
     <p style="text-align:center">계절 평균 초미세먼지 <b style="color:${gradeOf(avg)[1]}">${avg}㎍/㎥</b> (목표 ${F.goal})${avg <= F.goal ? ' · 목표 달성!' : ''}</p>
     <div class="stats"><div>점수<b>${G.score.toLocaleString()}</b></div><div>놓친 먼지몬<b>${G.leaks}</b></div><div>대책으로 막은 먼지몬<b>${G.cut}</b></div><div>비상저감조치 발령<b>${G.alerts}회</b></div></div>
     <span class="k">오늘 배운 것</span><ul><li><b>계절관리제</b>: 매년 12월 1일~이듬해 3월 31일, 평소보다 강하게 미세먼지를 줄여요.</li><li><b>비상저감조치</b>: 오늘 평균 50 초과 + 내일 50 초과 예보(또는 내일 75 초과 예보)면 발령해요.</li><li>먼지는 <b>나오는 곳에서 줄이는 게</b> 가장 좋아요: ${G.cards.map((id) => cardOf(id).name).join(', ') || '대책 카드'}.</li><li>짙은 날엔 <b>외출 줄이기·보건용 마스크·씻기·대중교통</b>.</li></ul>
-    <div class="rowb"><button class="btn sm plain" id="eCert">인증서 저장</button><button class="btn sm plain" id="eShare">공유</button><button class="btn sm plain" id="eBook">📖 수첩</button></div><button class="btn big mint" id="eRe" style="margin-top:calc(var(--u) * 4)">한 판 더!</button></div>`);
+    <div class="rowb"><button class="btn sm plain" id="eCert">인증서 저장</button><button class="btn sm plain" id="eShare">공유</button><button class="btn sm plain" id="eBook">📖 수첩</button></div><button class="btn big mint" id="eRe" style="margin-top:calc(var(--u) * 4)">한 판 더!</button><button class="btn sm plain" id="eHq" style="width:100%;margin-top:calc(var(--u) * 3)">◀ 수비대 본부로</button></div>`);
+  $('#eHq').onclick = () => { location.href = '../?hq=1'; };
   $('#eRe').onclick = () => { AU.pick(); title(); };
   $('#eBook').onclick = () => { AU.pick(); book(2, ending); };
   $('#eCert').onclick = () => cert().toBlob((b) => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = '하늘수비대_인증서.png'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); });
