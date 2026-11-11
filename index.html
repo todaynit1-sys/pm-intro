@@ -582,12 +582,13 @@ const grade = (v) => (v <= 15 ? ['좋음', '#2f7de1'] : v <= 35 ? ['보통', '#2
 let T = 0;
 
 /* 진행 기록 (이 브라우저에만 저장) */
-const AV0 = { v: 2, type: 'wind', hair: 'spiky', hairColor: '#2b2440', skin: '#ffdcc0', eye: 'sharp', mouth: 'smile', cheek: 'pink', suit: '#2f9bff', pants: '', shoe: '#ffffff', scarf: '#ffd23f', top: 'uniform', gear: 'goggles', acc: 'none', back: 'none', hand: 'none', deco: '#ff5a5f' }; // 새 대원 기본 모습
+const AV0 = { v: 2, body: 'm', type: 'wind', hair: 'spiky', hairColor: '#2b2440', skin: '#ffdcc0', eye: 'sharp', mouth: 'smile', cheek: 'pink', suit: '#2f9bff', pants: '', shoe: '#ffffff', scarf: '#ffd23f', top: 'uniform', gear: 'goggles', acc: 'none', back: 'none', hand: 'none', deco: '#ff5a5f' }; // 새 대원 기본 모습
 const fresh = () => ({ name: '', avatar: { ...AV0 }, intro: false, done: [0, 0, 0, 0, 0], stars: [0, 0, 0, 0, 0], src: [0, 0, 0, 0, 0], miss: 0, fin: false, orbs: [], pops: 0, best: 0, badges: {}, read: [], styled: false, meong: 0 });
 let state = fresh();
 try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === 'object' && (Array.isArray(s.done) || typeof s.step === 'number')) { state = Object.assign(fresh(), s); if (!Array.isArray(s.done)) { state.done = [0, 1, 2, 3].map((i) => (s.step > i ? 1 : 0)); state.fin = !!s.done; } delete state.step; while (state.done.length < 5) state.done.push(0); while (state.stars.length < 5) state.stars.push(0); state.avatar = Object.assign({ ...AV0 }, s.avatar && typeof s.avatar === 'object' ? s.avatar : null); for (const k of ['orbs', 'read']) if (!Array.isArray(state[k])) state[k] = []; if (!state.badges || typeof state.badges !== 'object') state.badges = {}; } } catch (e) { /* 저장 못 하는 환경 */ } // 예전(월별) 기록은 마친 체험으로 바꿔 읽음
 const save = () => { try { checkBadges(); checkUnlocks(); } catch (e) { /* 아직 준비 전 */ } try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } };
 const starTotal = () => state.stars.reduce((a, b) => a + b, 0);
+const arcBest = () => { try { return (JSON.parse(localStorage.getItem('sky-guard-v1')) || {}).best || 0; } catch (e) { return 0; } }; // 오락기(먼지몬 막기 슈팅) 최고 점수
 const doneN = () => state.done.filter(Boolean).length;                               // 마친 체험 수
 const pmNow = () => F.start - 2 * doneN() - 0.32 * starTotal();                        // 체험 하나에 -2, 별 하나에 -0.32 (다섯 체험·별 15개면 18)
 const isSpike = () => false; // 예전의 "고농도가 온 달"은 없앰 (체험을 순서 없이 하나씩 하도록 바꿈)
@@ -857,21 +858,21 @@ const shade = (hex, k) => { const c = new THREE.Color(hex); c.multiplyScalar(k);
 const INKM = new THREE.MeshBasicMaterial({ color: '#12142b', side: THREE.BackSide });
 const HSTY = { short: 'short', buzz: 'short', part: 'short', cap: 'cap', beanie: 'cap', fcap: 'cap', spiky: 'spiky', bob: 'bob', long: 'long', pony: 'pony', bun: 'buns', twin: 'twin', buns: 'buns', curly: 'curly', wave: 'curly', hood: 'hood', mohawk: 'mohawk', bowl: 'bowl' }; // 예전 머리 이름도 받아 줌 (마을 사람들)
 function makePerson(o = {}) {
-  const suit = o.suit || o.shirt || '#2f9bff', pants = o.pants || shade(suit, 0.72), hairC = o.hair || '#2b2440', skin = o.skin || '#ffdcc0', style = HSTY[o.style] || 'short', gear = o.helmet ? 'helmet' : o.gear || 'none', top = o.top || 'uniform', deco = o.deco || '#ff5a5f', INK = '#12142b';
+  const suit = o.suit || o.shirt || '#2f9bff', pants = o.pants || shade(suit, 0.72), hairC = o.hair || '#2b2440', skin = o.skin || '#ffdcc0', style = HSTY[o.style] || 'short', gear = o.helmet ? 'helmet' : o.gear || 'none', top = o.top || 'uniform', deco = o.deco || '#ff5a5f', INK = '#12142b', fem = o.body === 'f';
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body); root.rotation.order = 'YXZ'; // 방향을 먼저 돌리고 몸을 기울임
   const mk = (geo, c, x, y, z, p = body, r = 0) => { const m = new THREE.Mesh(geo, typeof c === 'string' ? mat(c) : c); m.position.set(x, y, z); m.castShadow = true; p.add(m); if (r) { const ol = new THREE.Mesh(geo, INKM); ol.scale.setScalar(1 + 0.022 / r); m.add(ol); } return m; }; // r 을 주면 그 굵기에 맞는 잉크 테두리
   const cap = (r, len) => new THREE.CapsuleGeometry(r, len, 5, 12), sph = (r) => new THREE.SphereGeometry(r, 20, 14), cyl = (r, h, n = 18) => new THREE.CylinderGeometry(r, r, h, n), cone = (r, h) => new THREE.ConeGeometry(r, h, 10), box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
   // 다리 · 신발
   const legs = [-0.12, 0.12].map((x) => { const p = new THREE.Group(); p.position.set(x, 0.5, 0); body.add(p); mk(cap(0.095, 0.2), top === 'dress' ? skin : pants, 0, -0.2, 0, p, 0.095); mk(sph(0.13), o.shoe || '#ffffff', 0, -0.41, 0.045, p, 0.13).scale.set(1, 0.7, 1.3); return p; });
   // 몸 · 옷 모양
-  const torso = mk(cap(0.25, 0.2), suit, 0, 0.72, 0, body, 0.25); torso.scale.set(1, 1, 0.86);
+  const torso = mk(cap(0.25, 0.2), suit, 0, 0.72, 0, body, 0.25); torso.scale.set(fem ? 0.92 : 1, 1, 0.86);
   if (top === 'uniform') { mk(cyl(0.257, 0.07, 20), INK, 0, 0.56, 0).scale.set(1, 1, 0.86); mk(box(0.09, 0.09, 0.03), '#ffd23f', 0, 0.56, 0.222); if (o.hero) { mk(cyl(0.075, 0.02), '#ffffff', 0, 0.77, 0.212).rotation.x = Math.PI / 2; mk(cyl(0.04, 0.026, 14), suit, 0, 0.77, 0.216).rotation.x = Math.PI / 2; } }
   else if (top === 'hoodie') { mk(sph(0.2), suit, 0, 0.95, -0.2, body, 0.2).scale.set(1.1, 0.75, 0.8); mk(box(0.26, 0.12, 0.03), shade(suit, 0.85), 0, 0.62, 0.213); for (const s of [-1, 1]) mk(cyl(0.012, 0.14, 6), '#ffffff', s * 0.06, 0.82, 0.215); }
   else if (top === 'overalls') { mk(cyl(0.258, 0.2, 20), pants, 0, 0.58, 0).scale.set(1, 1, 0.87); mk(box(0.26, 0.2, 0.03), pants, 0, 0.76, 0.208); for (const s of [-1, 1]) { mk(box(0.05, 0.26, 0.03), pants, s * 0.12, 0.88, 0.17).rotation.x = -0.35; mk(sph(0.022), '#ffd23f', s * 0.1, 0.83, 0.226); } }
   else if (top === 'stripe') for (const y of [0.6, 0.72, 0.84]) mk(cyl(0.255, 0.045, 22), '#ffffff', 0, y, 0).scale.set(1, 1, 0.86);
   else if (top === 'dress') { mk(new THREE.CylinderGeometry(0.2, 0.4, 0.34, 20), suit, 0, 0.5, 0, body, 0.3).scale.set(1, 1, 0.9); mk(cyl(0.21, 0.05, 20), '#ffffff', 0, 0.68, 0).scale.set(1.2, 1, 1.05); }
   if (o.vest) { mk(cap(0.262, 0.1), '#d7f24a', 0, 0.75, 0).scale.set(1, 1, 0.9); mk(cyl(0.268, 0.035, 20), '#f4f4f0', 0, 0.7, 0).scale.set(1, 1, 0.9); }
-  const arms = [-1, 1].map((s) => { const p = new THREE.Group(); p.position.set(s * 0.3, 0.86, 0); body.add(p); mk(cap(0.075, 0.18), suit, 0, -0.14, 0, p, 0.075); mk(sph(0.085), skin, 0, -0.31, 0, p, 0.085); return p; });
+  const arms = [-1, 1].map((s) => { const p = new THREE.Group(); p.position.set(s * (fem ? 0.28 : 0.3), 0.86, 0); body.add(p); mk(cap(fem ? 0.068 : 0.075, 0.18), suit, 0, -0.14, 0, p, 0.075); mk(sph(0.085), skin, 0, -0.31, 0, p, 0.085); return p; });
   // 목도리 (꼬리가 걸을 때 날림)
   let scarf = null;
   if (o.scarf && o.scarf !== 'none') { mk(new THREE.TorusGeometry(0.2, 0.078, 10, 20), o.scarf, 0, 0.94, 0).rotation.x = Math.PI / 2; scarf = new THREE.Group(); scarf.position.set(-0.11, 0.94, -0.17); scarf.rotation.x = -0.9; body.add(scarf); mk(box(0.15, 0.05, 0.34), o.scarf, 0, 0, -0.17, scarf); const tip = new THREE.Group(); tip.position.set(0, 0, -0.34); scarf.add(tip); mk(box(0.14, 0.05, 0.28), o.scarf, 0, 0, -0.14, tip); scarf.userData.tip = tip; }
@@ -889,6 +890,7 @@ function makePerson(o = {}) {
     const hl = new THREE.Mesh(sph(0.024), mat('#ffffff')); hl.position.set(0.028, 0.026, 0.05); e.add(hl); if (big) { const h2 = new THREE.Mesh(sph(0.013), mat('#ffffff')); h2.position.set(-0.024, -0.028, 0.052); e.add(h2); }
     if (o.eye === 'sharp') { const b = mk(box(0.115, 0.026, 0.02), INK, s * 0.155, 0.108, 0.398, head); b.rotation.z = s * 0.28; b.castShadow = false; }
     if (o.eye === 'sleepy') mk(box(0.12, 0.022, 0.02), INK, s * 0.155, 0.05, 0.402, head).castShadow = false;
+    if (fem) for (const [dx, dy, rz] of [[0.058, 0.05, 0.75], [0.07, 0.015, 0.3]]) { const l = mk(box(0.055, 0.015, 0.012), INK, s * (0.155 + dx), dy, 0.372, head); l.rotation.z = s * rz; l.castShadow = false; } // 속눈썹
     return e;
   });
   if (o.cheek !== 'none') for (const s of [-1, 1]) { if (o.cheek === 'freckle') for (const [dx, dy] of [[0, 0], [0.04, 0.025], [-0.04, 0.02]]) mk(sph(0.012), '#c98a5a', s * 0.26 + dx, -0.09 + dy, 0.33, head).castShadow = false; else { const c = mk(sph(0.055), '#ff9db0', s * 0.275, -0.11, 0.315, head); c.scale.set(1, 0.6, 0.35); c.castShadow = false; } }
@@ -1014,12 +1016,16 @@ const PANTS = ['#27408b', '#12142b', '#3d4466', '#8a5a3c', '#19c9a0', '#ff5a5f',
 const SHOES = ['#ffffff', '#12142b', '#ff5a5f', '#ffd23f', '#19d3a2', '#7b5cff'];
 const DECOS = ['#ff5a5f', '#ffd23f', '#19d3a2', '#2f9bff', '#7b5cff', '#f478b6', '#ffffff', '#12142b'];
 const TYPES = [['wind', '바람', '#2f9bff', '#ffd23f'], ['dew', '이슬', '#19c9a0', '#ffffff'], ['leaf', '새싹', '#3fbf5a', '#ffd23f'], ['sun', '햇살', '#ffb020', '#ff5a5f']]; // 고르면 옷·목도리 색이 따라 바뀜
-const HAIRS = [['spiky', '삐죽'], ['short', '짧은 머리'], ['bob', '단발'], ['long', '긴 머리'], ['pony', '포니테일'], ['buns', '당고'], ['twin', '양갈래'], ['curly', '곱슬'], ['bowl', '바가지'], ['mohawk', '모히칸'], ['hood', '후드']];
+const BODIES = [['m', '남자'], ['f', '여자']];
+const HAIRS_M = [['spiky', '삐죽'], ['short', '짧은 머리'], ['bowl', '바가지'], ['mohawk', '모히칸'], ['curly', '곱슬'], ['hood', '후드']];
+const HAIRS_F = [['bob', '단발'], ['long', '긴 머리'], ['pony', '포니테일'], ['buns', '당고'], ['twin', '양갈래'], ['curly', '곱슬'], ['hood', '후드']];
+const HAIR_FIX = { f: { spiky: 'bob', short: 'bob', bowl: 'bob', mohawk: 'pony' }, m: { bob: 'short', long: 'short', pony: 'spiky', buns: 'short', twin: 'short' } }; // 성별을 바꾸면 비슷한 머리로
+function fitBody(d) { const f = d.body === 'f', list = f ? HAIRS_F : HAIRS_M; if (!list.some((h) => h[0] === d.hair)) d.hair = HAIR_FIX[f ? 'f' : 'm'][d.hair] || list[0][0]; if (!f && d.top === 'dress') d.top = 'uniform'; return d; }
 const EYES = [['round', '동글'], ['sharp', '또렷'], ['sparkle', '반짝'], ['smile', '웃는 눈'], ['wink', '윙크'], ['sleepy', '졸린 눈']];
 const MOUTHS = [['smile', '미소'], ['grin', '활짝'], ['cat', '고양이 입'], ['o', '동그란 입'], ['tongue', '메롱']];
 const CHEEKS = [['pink', '볼터치'], ['freckle', '주근깨'], ['none', '없음']];
 const ACCS = [['none', '없음'], ['glasses', '안경'], ['sunglasses', '선글라스'], ['mask', '마스크']];
-const TOPS = [['uniform', '수비대복'], ['hoodie', '후드티'], ['overalls', '멜빵바지'], ['stripe', '줄무늬'], ['dress', '원피스']];
+const TOPS_M = [['uniform', '수비대복'], ['hoodie', '후드티'], ['overalls', '멜빵바지'], ['stripe', '줄무늬']], TOPS_F = TOPS_M.concat([['dress', '원피스']]); // 원피스는 여자만
 const GEARS = [['none', '없음'], ['goggles', '고글'], ['visor', '바이저'], ['headset', '헤드셋'], ['sprout', '새싹'], ['ballcap', '야구모자'], ['beanie', '비니'], ['flower', '꽃핀'], ['party', '고깔모자'], ['cat', '고양이 귀'], ['bunny', '토끼 귀'], ['halo', '천사 고리'], ['crown', '왕관']];
 const BACKS = [['none', '없음'], ['bag', '가방'], ['cape', '망토'], ['wings', '날개']];
 const HANDS = [['none', '없음'], ['balloon', '풍선'], ['pinwheel', '바람개비'], ['wand', '별 요술봉']];
@@ -1043,15 +1049,16 @@ function checkUnlocks() { // 새로 열린 꾸미기를 알려 줌 (저장할 �
   if (fresh.length && started) setTimeout(() => { toast(`🎁 새 꾸미기 <b>${fresh.join(', ')}</b>! 👕 에서 입어 보세요`, 5200); SFX.fanfare(); }, 2600);
 }
 const CZ_TABS = [
-  ['base', '기본', [['c', 'type', '어떤 지킴이?', TYPES], ['s', 'skin', '피부', SKINS]]],
-  ['hair', '머리', [['c', 'hair', '머리 모양', HAIRS], ['s', 'hairColor', '머리 색', HAIR_COLS]]],
+  ['base', '기본', [['c', 'body', '성별', BODIES], ['c', 'type', '어떤 지킴이?', TYPES], ['s', 'skin', '피부', SKINS]]],
+  ['hair', '머리', [['c', 'hair', '머리 모양', (d) => (d.body === 'f' ? HAIRS_F : HAIRS_M)], ['s', 'hairColor', '머리 색', HAIR_COLS]]],
   ['face', '얼굴', [['c', 'eye', '눈', EYES], ['c', 'mouth', '입', MOUTHS], ['c', 'cheek', '볼', CHEEKS], ['c', 'acc', '얼굴 소품', ACCS]]],
-  ['wear', '옷', [['c', 'top', '옷 모양', TOPS], ['s', 'suit', '옷 색', SUITS], ['s', 'pants', '바지 색', PANTS], ['s', 'shoe', '신발 색', SHOES], ['s', 'scarf', '목도리', SCARFS]]],
+  ['wear', '옷', [['c', 'top', '옷 모양', (d) => (d.body === 'f' ? TOPS_F : TOPS_M)], ['s', 'suit', '옷 색', SUITS], ['s', 'pants', '바지 색', PANTS], ['s', 'shoe', '신발 색', SHOES], ['s', 'scarf', '목도리', SCARFS]]],
   ['gear', '장비', [['c', 'gear', '머리 장비', GEARS], ['c', 'back', '등', BACKS], ['c', 'hand', '손', HANDS], ['s', 'deco', '장비 색', DECOS]]],
 ];
-const avatarLook = (a0) => { const a = a0 && a0.v === 2 ? a0 : AV0; return { hero: true, suit: a.suit, scarf: a.scarf, hair: a.hairColor, skin: a.skin, style: a.hair, eye: a.eye, mouth: a.mouth, cheek: a.cheek, gear: a.gear, acc: a.acc, top: a.top, pants: a.pants, shoe: a.shoe, back: a.back, hand: a.hand, deco: a.deco }; };
+const avatarLook = (a0) => { const a = a0 && a0.v === 2 ? a0 : AV0; return { hero: true, body: a.body, suit: a.suit, scarf: a.scarf, hair: a.hairColor, skin: a.skin, style: a.hair, eye: a.eye, mouth: a.mouth, cheek: a.cheek, gear: a.gear, acc: a.acc, top: a.top, pants: a.pants, shoe: a.shoe, back: a.back, hand: a.hand, deco: a.deco }; };
 function mountCreator(box, draft, onChange) {
   if (draft.v !== 2) { for (const k in draft) delete draft[k]; Object.assign(draft, AV0); } // 예전 기록(다른 모양의 캐릭터)은 새 기본 모습으로
+  if (draft.body === undefined) draft.body = draft.top === 'dress' || (HAIRS_F.some((h) => h[0] === draft.hair) && !HAIRS_M.some((h) => h[0] === draft.hair)) ? 'f' : 'm'; // 성별을 나누기 전 기록은 머리·옷을 보고 정함
   for (const k in AV0) if (draft[k] === undefined) draft[k] = AV0[k];
   let tab = 'base', prev = null;
   box.innerHTML = `<div class="cz"><div class="cz-prev"><canvas class="czCv" aria-label="캐릭터 미리보기. 끌어서 돌려 볼 수 있어요"></canvas><button class="mini-btn" type="button" data-rand>무작위로</button></div>
@@ -1059,7 +1066,7 @@ function mountCreator(box, draft, onChange) {
   const panel = $('.cz-panel', box);
   const render = () => {
     let anyLock = false;
-    panel.innerHTML = CZ_TABS.find((t) => t[0] === tab)[2].map(([kind, key, label, list]) => (kind === 's'
+    panel.innerHTML = CZ_TABS.find((t) => t[0] === tab)[2].map(([kind, key, label, l0]) => [kind, key, label, typeof l0 === 'function' ? l0(draft) : l0]).map(([kind, key, label, list]) => (kind === 's'
       ? `<div class="field"><span>${label}</span><div class="swatches sm" data-key="${key}">${list.map((c) => `<button type="button" class="sw" data-v="${c}" style="background:${c === 'none' ? '#fff' : c}" aria-label="${label}${c === 'none' ? ' 없음' : ''}" aria-pressed="${draft[key] === c}">${c === 'none' ? '✕' : ''}</button>`).join('')}</div></div>`
       : `<div class="field"><span>${label}</span><div class="mopts" data-key="${key}">${list.map(([v, nm]) => { const L = locked(key, v); if (L) anyLock = true; return `<button type="button" class="chip${L ? ' lock' : ''}" data-v="${v}"${L ? ` data-lock="${L[1]}"` : ''} aria-pressed="${draft[key] === v}">${L ? '🔒 ' : ''}${nm}</button>`; }).join('')}</div></div>`)).join('') + (anyLock ? '<p class="fine">🔒 는 체험을 하고 별·구슬을 모으면 열려요. 눌러 보면 방법을 알려 줘요.</p>' : '');
     box.querySelectorAll('.cz-tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
@@ -1069,15 +1076,15 @@ function mountCreator(box, draft, onChange) {
   box.addEventListener('click', (e) => {
     const t = e.target.closest('[data-tab]'); if (t) { tab = t.dataset.tab; render(); SFX.tick(); return; }
     if (e.target.closest('[data-rand]')) { // 무작위: 열려 있는 것 가운데서만, 장비는 반쯤만
-      const half = (key, list) => (Math.random() < 0.5 ? 'none' : free(key, list));
-      Object.assign(draft, { type: free('type', TYPES), suit: pick(SUITS), scarf: pick(SCARFS), pants: pick(PANTS), shoe: pick(SHOES), deco: pick(DECOS), hair: free('hair', HAIRS), hairColor: pick(HAIR_COLS), skin: pick(SKINS), eye: free('eye', EYES), mouth: free('mouth', MOUTHS), cheek: free('cheek', CHEEKS), top: free('top', TOPS), gear: half('gear', GEARS), acc: Math.random() < 0.7 ? 'none' : free('acc', ACCS), back: half('back', BACKS), hand: half('hand', HANDS) });
+      const half = (key, list) => (Math.random() < 0.5 ? 'none' : free(key, list)), fem = Math.random() < 0.5;
+      Object.assign(draft, { body: fem ? 'f' : 'm', type: free('type', TYPES), suit: pick(SUITS), scarf: pick(SCARFS), pants: pick(PANTS), shoe: pick(SHOES), deco: pick(DECOS), hair: free('hair', fem ? HAIRS_F : HAIRS_M), hairColor: pick(HAIR_COLS), skin: pick(SKINS), eye: free('eye', EYES), mouth: free('mouth', MOUTHS), cheek: free('cheek', CHEEKS), top: free('top', fem ? TOPS_F : TOPS_M), gear: half('gear', GEARS), acc: Math.random() < 0.7 ? 'none' : free('acc', ACCS), back: half('back', BACKS), hand: half('hand', HANDS) });
       changed(); if (prev) prev.cheer(); return;
     }
     const v = e.target.closest('[data-v]'), g = v && v.closest('[data-key]');
     if (g) {
       if (v.dataset.lock) { toast(`🔒 ${v.dataset.lock} 열려요`, 3200); SFX.tick(); return; }
-      draft[g.dataset.key] = v.dataset.v; if (g.dataset.key === 'type') { const ty = TYPES.find((x) => x[0] === v.dataset.v); draft.suit = ty[2]; draft.scarf = ty[3]; }
-      changed(); if (prev && ['type', 'gear', 'back', 'hand', 'top'].includes(g.dataset.key)) prev.cheer();
+      draft[g.dataset.key] = v.dataset.v; if (g.dataset.key === 'body') fitBody(draft); if (g.dataset.key === 'type') { const ty = TYPES.find((x) => x[0] === v.dataset.v); draft.suit = ty[2]; draft.scarf = ty[3]; }
+      changed(); if (prev && ['body', 'type', 'gear', 'back', 'hand', 'top'].includes(g.dataset.key)) prev.cheer();
     }
   });
   render();
@@ -1460,7 +1467,7 @@ function playHq(id, e) { // id: lab·road·room·plant·town, e: 이 게임이 �
 }
 addEventListener('message', (ev) => {
   if (ev.origin !== location.origin || !ev.data || ev.data.src !== 'hq' || !frameOn) return; const { f, id, e } = frameOn, d = ev.data; f.remove(); frameOn = null; window.focus();
-  if (d.stars == null) return; // 그냥 나옴
+  if (d.stars == null) { if (id === 'arcade') { save(); refreshHud(); } return; } // 그냥 나옴 (오락기는 최고 점수로 배지 확인)
   if (!d.stars) return talk('뭉게', ['아깝다! 한 번 더 해 보면 별을 딸 수 있을 거야.'], [{ label: '나중에' }, { label: '다시 하기', primary: true, onClick: () => playHq(id, e) }]);
   if (e >= 0) return missionDone(e, d.stars, d.stat || '', d.facts || []);
   state.bonus = state.bonus || {}; state.bonus[id] = Math.max(state.bonus[id] || 0, d.stars); save(); SFX.ok(); cheer(player.P); toast(`🎮 ${d.head || '미니게임'} · ${'★'.repeat(d.stars)}`, 3600);
@@ -1473,7 +1480,7 @@ function openGo() { // 어디로 갈지 고르면 알아서 걸어감
   const rows = [
     ...[3, 0, 1, 2].map((k) => SPOTS[k]).map((s) => [`${M_ICON[s.e]} ${s.name}`, st(s.e), s]),
     ['🔥 마을 배출원 줄이기', state.done[3] ? st(3) : `${solved}/5 해결`, nearestSrc() || SRC[0]],
-    ['🕹️ 오락기', '게임 네 가지', ARCADE],
+    ['🕹️ 먼지몬 막기 오락기', arcBest() ? `최고 ${arcBest().toLocaleString()}점` : '몰려오는 먼지몬 막기', ARCADE],
     ['☁️ 하늘멍 자리', '누워서 쉬기', SKYSPOT],
     ['🪑 마을멍 벤치', '앉아서 쉬기', BENCH],
     ['🦆 물멍 연못', '물가에서 쉬기', PONDSPOT],
@@ -1586,12 +1593,12 @@ function updateMons(dt) {
   });
 }
 
-// 오락기: 먼지몬 잡기 (30초 점수 도전)
+// 오락기: 먼지몬이 몰려오는 슈팅(arcade/)과 2D 게임 두 가지를 고름. 아래 playArcade 는 예전 30초 게임 (지금은 쓰지 않음)
 box(1.2, 1.9, 0.9, '#3d405b', -4.2, 0.95, 9.4); box(0.9, 0.6, 0.06, '#7fd8be', -4.2, 1.38, 9.87, null, false); box(1.0, 0.22, 0.34, '#e4572e', -4.2, 0.86, 9.96);
 sph(0.07, '#ffd45c', -4.45, 1.02, 10.02); sph(0.07, '#7fc8f8', -4.0, 1.02, 10.02);
-sign('먼지몬 잡기', -4.2, 2.12, 9.86, { w: 1.3, h: 0.36, bg: '#e4572e', size: 0.6 }); col(-4.2, 9.4, 0.85);
-addTag('🕹️ 먼지몬 잡기', { x: -4.2, y: 0, z: 9.4 }, 3);
-addI({ pos: { x: -4.2, z: 9.4 }, r: 2.4, stop: 1.6, label: () => '먼지몬 잡기 (30초)', act: () => playArcade() });
+sign('먼지몬 막기', -4.2, 2.12, 9.86, { w: 1.3, h: 0.36, bg: '#e4572e', size: 0.6 }); col(-4.2, 9.4, 0.85);
+addTag('🕹️ 먼지몬 막기', { x: -4.2, y: 0, z: 9.4 }, 3);
+addI({ pos: { x: -4.2, z: 9.4 }, r: 2.4, stop: 1.6, label: () => '먼지몬 막기 오락기', act: () => ARCADE.act() });
 function playArcade() {
   openModal(`<div class="q-head"><b>🕹️ 먼지몬 잡기</b><span class="q-prog"><span id="arcT">30</span>초</span></div><div class="q-timer"><i id="arcBar" style="animation:none"></i></div>
     <div class="arc-hud"><span>점수 <b id="arcS">0</b></span><span id="arcC"></span><span>최고 <b>${state.best}</b></span></div>
@@ -1639,7 +1646,7 @@ const BADGES = [
   ['stars', '⭐', '별 열다섯 개', '모든 체험에서 별 셋', () => starTotal() === N_EXP * 3],
   ['orbs', '💎', '구슬 수집가', '하늘 구슬을 모두 모았어요', () => state.orbs.length >= ORBS.length],
   ['hunter', '🧹', '먼지 사냥꾼', '먼지몬 15마리를 쫓아냈어요', () => state.pops >= 15],
-  ['arcade', '🕹️', '오락기 고수', '먼지몬 잡기 300점', () => state.best >= 300],
+  ['arcade', '🕹️', '오락기 고수', '먼지몬 막기 5,000점', () => arcBest() >= 5000 || state.best >= 300],
   ['note', '📒', '공부벌레', '수첩을 처음부터 끝까지 읽었어요', () => state.read.length >= NOTES.length],
   ['style', '👕', '멋쟁이', '캐릭터를 꾸몄어요', () => !!state.styled],
   ['meong', '☁️', '멍 한 스푼', '하늘멍·마을멍·물멍으로 1분 쉬었어요', () => (state.meong || 0) >= 60],
@@ -1676,7 +1683,7 @@ function openCustomizer() {
    쉬어 가기 — 하늘멍(돗자리에 누워 하늘 보기) · 마을멍(벤치에 앉아 마을 보기)
    체험을 마칠수록 하늘이 맑아져서, 누워서 보는 하늘도 달라져요
    ========================================================= */
-const ARCADE = { x: -4.2, z: 9.4, stop: 1.6, tag: [-4.2, 9.4, 3], act: () => talk('오락기', ['무슨 게임을 할까? 고르면 화면 속으로 들어가!'], [{ label: '먼지몬 잡기', onClick: playArcade }, { label: '5등급 스캐너', onClick: () => playHq('road', -1) }, { label: '굴뚝 공단', onClick: () => playHq('plant', -1) }, { label: '하늘 수비대 슈팅', primary: true, onClick: () => openFrame('arcade/', { id: 'arcade', e: -1 }) }]) };
+const ARCADE = { x: -4.2, z: 9.4, stop: 1.6, tag: [-4.2, 9.4, 3], act: () => talk('오락기', ['<b>먼지몬이 몰려온다!</b> 구름을 타고 물방울을 쏴서 마을을 지켜 볼까? 다른 게임도 있어.'], [{ label: '5등급 스캐너', onClick: () => playHq('road', -1) }, { label: '굴뚝 공단', onClick: () => playHq('plant', -1) }, { label: '먼지몬 막기!', primary: true, onClick: () => openFrame('arcade/', { id: 'arcade', e: -1 }) }]) };
 const SKYSPOT = { x: -26.5, z: 15, stop: 0.6, tag: [-26.5, 15, 2.2], act: () => startMeong('sky') };
 const BENCH = { x: 5.6, z: 8.2, rot: -0.6, stop: 1.5, tag: [5.6, 8.2, 2], act: () => startMeong('town') };
 flat(3.4, 2.3, '#f2a7c3', SKYSPOT.x, SKYSPOT.z, 0.03); for (let i = 0; i < 4; i++) flat(0.42, 2.3, '#ffffff', SKYSPOT.x - 1.26 + i * 0.84, SKYSPOT.z, 0.035);
