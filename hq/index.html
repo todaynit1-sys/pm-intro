@@ -254,7 +254,7 @@ const KEY = 'sky-hq-v1';
 const LOOK0 = { type: 0, hair: 0, hairCol: 0, skin: 0, eye: 1, suit: 0, scarf: 0, gear: 1, board: 0 };
 const S = { name: '', look: { ...LOOK0 }, made: 0, stars: {}, best: {}, fin: 0, mute: 0, sel: 0 };
 try { const o = JSON.parse(localStorage.getItem(KEY)); if (o) { Object.assign(S, o); S.look = { ...LOOK0, ...(o.look || {}) }; } } catch (e) { /* 저장 못 하는 환경 */ }
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignore */ } };
+const save = () => { if (EMBED) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignore */ } };
 const MIDS = ['lab', 'road', 'room', 'plant', 'town'];
 const starSum = () => MIDS.reduce((a, k) => a + (S.stars[k] || 0), 0), doneN = () => MIDS.filter((k) => S.stars[k]).length;
 const pmNow = () => Math.round(F.start - 2 * doneN() - 0.4 * (starSum() - doneN()));   // 작전을 마칠수록 33 → 19
@@ -784,20 +784,23 @@ function saveCert() { // 인증서 그림 (이 기기 안에서만 만들어짐)
    작전(미니게임) 공통 틀: 들어가기 · 점수 · 시간 막대 · 결과
    ========================================================= */
 const GAME = {};
+let EMBED = null; // 3D 마을 안에 겹쳐 띄운 경우: 게임 하나만 하고 결과를 부모 창에 알려 줌 (기록은 마을 쪽에서 함)
+const tellParent = (o) => parent.postMessage(Object.assign({ src: 'hq' }, o), location.origin);
 function stageOn(title) { stageOff(); hide(); $('#stage').hidden = false; $('#gTi').textContent = title; $('#gSc').textContent = ''; $('#gTb').hidden = true; $('#gm').innerHTML = ''; $('#gb').innerHTML = ''; }
 const gScore = (s) => { $('#gSc').textContent = s; };
 const gTime = (f) => { const b = $('#gTb'); if (f === null) { b.hidden = true; return; } b.hidden = false; b.firstChild.style.transform = `scaleX(${clamp(f, 0, 1)})`; b.firstChild.style.background = f < 0.3 ? '#ff5a5f' : '#19d3a2'; };
 const gBot = (html) => { $('#gb').innerHTML = html; };
 function playGame(id, again) { const i = DIST.findIndex((d) => d.id === id), d = DIST[i]; wipe(again ? null : { k: d.part, t: d.name, s: d.q }, () => { paused = false; stageOn(d.name); AU.music('game'); setScene(GAME[id]()); }); }
-function backHub(o) { wipe(null, () => { paused = false; setScene(hubScene(o)); }); }
+function backHub(o) { if (EMBED) return tellParent({ stars: null }); wipe(null, () => { paused = false; setScene(hubScene(o)); }); }
 $('#gX').onclick = () => {
   AU.tap(); paused = true;
-  show(`<div class="pnl pn"><h2>작전을 그만할까요?</h2><p>지금까지 한 것은 저장되지 않아요.</p><div class="rowb"><button class="b w" id="qN">본부로</button><button class="b go" id="qY" style="flex:1.6">계속하기</button></div></div>`);
+  show(`<div class="pnl pn"><h2>작전을 그만할까요?</h2><p>지금까지 한 것은 저장되지 않아요.</p><div class="rowb"><button class="b w" id="qN">${EMBED ? '마을로' : '본부로'}</button><button class="b go" id="qY" style="flex:1.6">계속하기</button></div></div>`);
   $('#qY').onclick = () => { AU.tap(); hide(); paused = false; }; $('#qN').onclick = () => { AU.tap(); hide(); backHub(); };
 };
 function endGame(id, stars, o) { // o: { head, stat, facts: [] }
   const pm0 = pmNow(), old = S.stars[id] || 0; if (stars > old) S.stars[id] = stars; save(); AU.music(null); gTime(null); gBot(''); $('#gm').innerHTML = '';
   if (stars) { AU.win(); confetti(40 + stars * 25); } else AU.lose();
+  if (EMBED) { kin(stars ? '성공!' : '아쉬워요!', stars ? '★'.repeat(stars) : '한 번 더 해 봐요'); setTimeout(() => tellParent({ id, stars, head: o.head, stat: o.stat, facts: o.facts }), 1700); return; }
   show(`<div class="pnl pn"><span class="tg"><span>${stars ? '작전 성공' : '한 번 더!'}</span></span><div class="bigstars">${starHtml(stars)}</div><h2 style="text-align:center">${o.head}</h2>${o.stat ? `<p style="text-align:center">${o.stat}</p>` : ''}<ul class="facts">${o.facts.map((f) => `<li>${f}</li>`).join('')}</ul><div class="rowb"><button class="b w" id="rRe">다시 하기</button><button class="b go" id="rOk" style="flex:1.7">본부로</button></div></div>`);
   $('#rRe').onclick = () => { AU.tap(); playGame(id, true); }; $('#rOk').onclick = () => { AU.tap(); backHub({ pm0 }); };
 }
@@ -1067,7 +1070,12 @@ const NOTES = [
 /* ---------- 시작 ---------- */
 let last = performance.now();
 function frame(ts) { const dt = Math.min(0.05, Math.max(0, (ts - last) / 1000)); last = ts; tick(dt); begin(); scene.draw(); drawFx(); requestAnimationFrame(frame); }
-{ const q = new URLSearchParams(location.search); setScene(S.made && q.has('hq') ? hubScene() : titleScene()); if (q.has('hq')) history.replaceState(null, '', location.pathname + location.hash); }
+{ const q = new URLSearchParams(location.search), em = q.get('embed');
+  if (em && GAME[em] && parent !== window) { // 마을에서 넘겨준 캐릭터 모습으로 그 게임만 바로 시작
+    EMBED = em; const L = (q.get('look') || '').split('.').map(Number), N = [TYPES, HAIRN, HAIRC, SKIN, EYEN, SUITC, SCARFC, GEARN];
+    ['type', 'hair', 'hairCol', 'skin', 'eye', 'suit', 'scarf', 'gear'].forEach((k, i) => { if (Number.isFinite(L[i])) S.look[k] = clamp(L[i] | 0, 0, N[i].length - 1); });
+    setScene({ update() {}, draw() { g.fillStyle = '#12142b'; g.fillRect(V.L - 2, V.T - 2, V.W + 4, V.H + 4); } }); stageOff(); playGame(em);
+  } else setScene(S.made && q.has('hq') ? hubScene() : titleScene()); if (q.has('hq')) history.replaceState(null, '', location.pathname + location.hash); }
 requestAnimationFrame(frame);
 if (location.hash === '#debug') window.__g = { S, V, save, step(n = 1, dt = 1 / 30) { for (let i = 0; i < n; i++) tick(dt); begin(); scene.draw(); drawFx(); }, get scene() { return scene; }, get T() { return T; }, get fx() { return fx; }, setScene, titleScene, hubScene, creator, story, meongScene, playGame, endGame, finale, book, settings, GAME, wipe, kin, toast, saveCert };
 </script>

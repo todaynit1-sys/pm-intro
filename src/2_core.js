@@ -18,7 +18,7 @@ const KEY = 'sky-hq-v1';
 const LOOK0 = { type: 0, hair: 0, hairCol: 0, skin: 0, eye: 1, suit: 0, scarf: 0, gear: 1, board: 0 };
 const S = { name: '', look: { ...LOOK0 }, made: 0, stars: {}, best: {}, fin: 0, mute: 0, sel: 0 };
 try { const o = JSON.parse(localStorage.getItem(KEY)); if (o) { Object.assign(S, o); S.look = { ...LOOK0, ...(o.look || {}) }; } } catch (e) { /* 저장 못 하는 환경 */ }
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignore */ } };
+const save = () => { if (EMBED) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignore */ } };
 const MIDS = ['lab', 'road', 'room', 'plant', 'town'];
 const starSum = () => MIDS.reduce((a, k) => a + (S.stars[k] || 0), 0), doneN = () => MIDS.filter((k) => S.stars[k]).length;
 const pmNow = () => Math.round(F.start - 2 * doneN() - 0.4 * (starSum() - doneN()));   // 작전을 마칠수록 33 → 19

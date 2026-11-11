@@ -450,6 +450,9 @@ kbd{display:inline-block;min-width:1.5em;padding:1px 5px;border-radius:5px;borde
   .gauge{width:150px}.g-face{font-size:22px}.g-num{font-size:26px}.g-unit{font-size:9px}.tools{max-width:150px}.icon-btn{height:36px;min-width:36px}#mini{width:150px;height:99px}
   .sg-num{font-size:64px}.scope{height:230px}.tile b{font-size:26px}
 }
+/* 잠긴 꾸미기 (게임을 하면 열림) · 목도리 없음 칸 */
+.chip.lock{opacity:.55}
+.sw[data-v="none"]{display:grid;place-items:center;font-size:11px;font-weight:900;color:#12142b}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -579,11 +582,11 @@ const grade = (v) => (v <= 15 ? ['좋음', '#2f7de1'] : v <= 35 ? ['보통', '#2
 let T = 0;
 
 /* 진행 기록 (이 브라우저에만 저장) */
-const AV0 = { v: 2, type: 'wind', hair: 'spiky', hairColor: '#2b2440', skin: '#ffdcc0', eye: 'sharp', suit: '#2f9bff', scarf: '#ffd23f', gear: 'goggles', acc: 'none' }; // 새 대원 기본 모습 // 처음 캐릭터
+const AV0 = { v: 2, type: 'wind', hair: 'spiky', hairColor: '#2b2440', skin: '#ffdcc0', eye: 'sharp', mouth: 'smile', cheek: 'pink', suit: '#2f9bff', pants: '', shoe: '#ffffff', scarf: '#ffd23f', top: 'uniform', gear: 'goggles', acc: 'none', back: 'none', hand: 'none', deco: '#ff5a5f' }; // 새 대원 기본 모습
 const fresh = () => ({ name: '', avatar: { ...AV0 }, intro: false, done: [0, 0, 0, 0, 0], stars: [0, 0, 0, 0, 0], src: [0, 0, 0, 0, 0], miss: 0, fin: false, orbs: [], pops: 0, best: 0, badges: {}, read: [], styled: false, meong: 0 });
 let state = fresh();
 try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === 'object' && (Array.isArray(s.done) || typeof s.step === 'number')) { state = Object.assign(fresh(), s); if (!Array.isArray(s.done)) { state.done = [0, 1, 2, 3].map((i) => (s.step > i ? 1 : 0)); state.fin = !!s.done; } delete state.step; while (state.done.length < 5) state.done.push(0); while (state.stars.length < 5) state.stars.push(0); state.avatar = Object.assign({ ...AV0 }, s.avatar && typeof s.avatar === 'object' ? s.avatar : null); for (const k of ['orbs', 'read']) if (!Array.isArray(state[k])) state[k] = []; if (!state.badges || typeof state.badges !== 'object') state.badges = {}; } } catch (e) { /* 저장 못 하는 환경 */ } // 예전(월별) 기록은 마친 체험으로 바꿔 읽음
-const save = () => { try { checkBadges(); } catch (e) { /* 아직 준비 전 */ } try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } };
+const save = () => { try { checkBadges(); checkUnlocks(); } catch (e) { /* 아직 준비 전 */ } try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } };
 const starTotal = () => state.stars.reduce((a, b) => a + b, 0);
 const doneN = () => state.done.filter(Boolean).length;                               // 마친 체험 수
 const pmNow = () => F.start - 2 * doneN() - 0.32 * starTotal();                        // 체험 하나에 -2, 별 하나에 -0.32 (다섯 체험·별 15개면 18)
@@ -852,59 +855,88 @@ const sweeper = { g: makeCar('#3fae98', 'sweeper'), x: 99 }; sweeper.g.visible =
 const shade = (hex, k) => { const c = new THREE.Color(hex); c.multiplyScalar(k); return `#${c.getHexString()}`; };
 /* 새 캐릭터 — 하늘 수비대원: 큰 머리, 목도리, 고글. 잉크 테두리(뒤집은 겉껍질)로 그림책 같은 선 */
 const INKM = new THREE.MeshBasicMaterial({ color: '#12142b', side: THREE.BackSide });
-const HSTY = { short: 'short', buzz: 'short', part: 'short', cap: 'cap', beanie: 'cap', fcap: 'cap', spiky: 'spiky', bob: 'bob', long: 'bob', pony: 'pony', bun: 'buns', twin: 'buns', buns: 'buns', curly: 'curly', wave: 'curly', hood: 'hood' }; // 예전 머리 이름도 받아 줌 (마을 사람들)
+const HSTY = { short: 'short', buzz: 'short', part: 'short', cap: 'cap', beanie: 'cap', fcap: 'cap', spiky: 'spiky', bob: 'bob', long: 'long', pony: 'pony', bun: 'buns', twin: 'twin', buns: 'buns', curly: 'curly', wave: 'curly', hood: 'hood', mohawk: 'mohawk', bowl: 'bowl' }; // 예전 머리 이름도 받아 줌 (마을 사람들)
 function makePerson(o = {}) {
-  const suit = o.suit || o.shirt || '#2f9bff', pants = o.pants || shade(suit, 0.72), hairC = o.hair || '#2b2440', skin = o.skin || '#ffdcc0', style = HSTY[o.style] || 'short', gear = o.helmet ? 'helmet' : o.gear || 'none';
+  const suit = o.suit || o.shirt || '#2f9bff', pants = o.pants || shade(suit, 0.72), hairC = o.hair || '#2b2440', skin = o.skin || '#ffdcc0', style = HSTY[o.style] || 'short', gear = o.helmet ? 'helmet' : o.gear || 'none', top = o.top || 'uniform', deco = o.deco || '#ff5a5f', INK = '#12142b';
   const root = new THREE.Group(), body = new THREE.Group(); root.add(body); root.rotation.order = 'YXZ'; // 방향을 먼저 돌리고 몸을 기울임
   const mk = (geo, c, x, y, z, p = body, r = 0) => { const m = new THREE.Mesh(geo, typeof c === 'string' ? mat(c) : c); m.position.set(x, y, z); m.castShadow = true; p.add(m); if (r) { const ol = new THREE.Mesh(geo, INKM); ol.scale.setScalar(1 + 0.022 / r); m.add(ol); } return m; }; // r 을 주면 그 굵기에 맞는 잉크 테두리
-  const cap = (r, len) => new THREE.CapsuleGeometry(r, len, 5, 12), sph = (r) => new THREE.SphereGeometry(r, 20, 14), cyl = (r, h, n = 18) => new THREE.CylinderGeometry(r, r, h, n), cone = (r, h) => new THREE.ConeGeometry(r, h, 10);
-  // 다리 · 흰 신발
-  const legs = [-0.12, 0.12].map((x) => { const p = new THREE.Group(); p.position.set(x, 0.5, 0); body.add(p); mk(cap(0.095, 0.2), pants, 0, -0.2, 0, p, 0.095); mk(sph(0.13), '#ffffff', 0, -0.41, 0.045, p, 0.13).scale.set(1, 0.7, 1.3); return p; });
-  // 몸 · 허리띠 · 가슴 표지 · (조끼)
+  const cap = (r, len) => new THREE.CapsuleGeometry(r, len, 5, 12), sph = (r) => new THREE.SphereGeometry(r, 20, 14), cyl = (r, h, n = 18) => new THREE.CylinderGeometry(r, r, h, n), cone = (r, h) => new THREE.ConeGeometry(r, h, 10), box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+  // 다리 · 신발
+  const legs = [-0.12, 0.12].map((x) => { const p = new THREE.Group(); p.position.set(x, 0.5, 0); body.add(p); mk(cap(0.095, 0.2), top === 'dress' ? skin : pants, 0, -0.2, 0, p, 0.095); mk(sph(0.13), o.shoe || '#ffffff', 0, -0.41, 0.045, p, 0.13).scale.set(1, 0.7, 1.3); return p; });
+  // 몸 · 옷 모양
   const torso = mk(cap(0.25, 0.2), suit, 0, 0.72, 0, body, 0.25); torso.scale.set(1, 1, 0.86);
-  mk(cyl(0.257, 0.07, 20), '#12142b', 0, 0.56, 0).scale.set(1, 1, 0.86); mk(new THREE.BoxGeometry(0.09, 0.09, 0.03), '#ffd23f', 0, 0.56, 0.222);
-  if (o.hero) { mk(cyl(0.075, 0.02), '#ffffff', 0, 0.77, 0.212).rotation.x = Math.PI / 2; mk(cyl(0.04, 0.026, 14), suit, 0, 0.77, 0.216).rotation.x = Math.PI / 2; }
+  if (top === 'uniform') { mk(cyl(0.257, 0.07, 20), INK, 0, 0.56, 0).scale.set(1, 1, 0.86); mk(box(0.09, 0.09, 0.03), '#ffd23f', 0, 0.56, 0.222); if (o.hero) { mk(cyl(0.075, 0.02), '#ffffff', 0, 0.77, 0.212).rotation.x = Math.PI / 2; mk(cyl(0.04, 0.026, 14), suit, 0, 0.77, 0.216).rotation.x = Math.PI / 2; } }
+  else if (top === 'hoodie') { mk(sph(0.2), suit, 0, 0.95, -0.2, body, 0.2).scale.set(1.1, 0.75, 0.8); mk(box(0.26, 0.12, 0.03), shade(suit, 0.85), 0, 0.62, 0.213); for (const s of [-1, 1]) mk(cyl(0.012, 0.14, 6), '#ffffff', s * 0.06, 0.82, 0.215); }
+  else if (top === 'overalls') { mk(cyl(0.258, 0.2, 20), pants, 0, 0.58, 0).scale.set(1, 1, 0.87); mk(box(0.26, 0.2, 0.03), pants, 0, 0.76, 0.208); for (const s of [-1, 1]) { mk(box(0.05, 0.26, 0.03), pants, s * 0.12, 0.88, 0.17).rotation.x = -0.35; mk(sph(0.022), '#ffd23f', s * 0.1, 0.83, 0.226); } }
+  else if (top === 'stripe') for (const y of [0.6, 0.72, 0.84]) mk(cyl(0.255, 0.045, 22), '#ffffff', 0, y, 0).scale.set(1, 1, 0.86);
+  else if (top === 'dress') { mk(new THREE.CylinderGeometry(0.2, 0.4, 0.34, 20), suit, 0, 0.5, 0, body, 0.3).scale.set(1, 1, 0.9); mk(cyl(0.21, 0.05, 20), '#ffffff', 0, 0.68, 0).scale.set(1.2, 1, 1.05); }
   if (o.vest) { mk(cap(0.262, 0.1), '#d7f24a', 0, 0.75, 0).scale.set(1, 1, 0.9); mk(cyl(0.268, 0.035, 20), '#f4f4f0', 0, 0.7, 0).scale.set(1, 1, 0.9); }
   const arms = [-1, 1].map((s) => { const p = new THREE.Group(); p.position.set(s * 0.3, 0.86, 0); body.add(p); mk(cap(0.075, 0.18), suit, 0, -0.14, 0, p, 0.075); mk(sph(0.085), skin, 0, -0.31, 0, p, 0.085); return p; });
   // 목도리 (꼬리가 걸을 때 날림)
   let scarf = null;
-  if (o.scarf) { mk(new THREE.TorusGeometry(0.2, 0.078, 10, 20), o.scarf, 0, 0.94, 0).rotation.x = Math.PI / 2; scarf = new THREE.Group(); scarf.position.set(-0.11, 0.94, -0.17); scarf.rotation.x = -0.9; body.add(scarf); mk(new THREE.BoxGeometry(0.15, 0.05, 0.34), o.scarf, 0, 0, -0.17, scarf); const tip = new THREE.Group(); tip.position.set(0, 0, -0.34); scarf.add(tip); mk(new THREE.BoxGeometry(0.14, 0.05, 0.28), o.scarf, 0, 0, -0.14, tip); scarf.userData.tip = tip; }
+  if (o.scarf && o.scarf !== 'none') { mk(new THREE.TorusGeometry(0.2, 0.078, 10, 20), o.scarf, 0, 0.94, 0).rotation.x = Math.PI / 2; scarf = new THREE.Group(); scarf.position.set(-0.11, 0.94, -0.17); scarf.rotation.x = -0.9; body.add(scarf); mk(box(0.15, 0.05, 0.34), o.scarf, 0, 0, -0.17, scarf); const tip = new THREE.Group(); tip.position.set(0, 0, -0.34); scarf.add(tip); mk(box(0.14, 0.05, 0.28), o.scarf, 0, 0, -0.14, tip); scarf.userData.tip = tip; }
+  // 등에 메는 것
+  if (o.back === 'cape') { const c = mk(box(0.5, 0.62, 0.03), deco, 0, 0.6, -0.25); c.rotation.x = 0.16; }
+  else if (o.back === 'wings') for (const s of [-1, 1]) { const w = mk(sph(0.2), '#ffffff', s * 0.2, 0.84, -0.24, body, 0.14); w.scale.set(1.25, 0.9, 0.3); w.rotation.z = s * -0.7; mk(sph(0.13), '#ffffff', s * 0.3, 0.68, -0.24, body, 0.1).scale.set(1.1, 0.8, 0.3); }
+  else if (o.back === 'bag') { mk(box(0.34, 0.36, 0.18), deco, 0, 0.74, -0.3, body, 0.2); mk(box(0.2, 0.12, 0.04), shade(deco, 0.8), 0, 0.68, -0.4); }
   // 머리 · 얼굴
   const HR = 0.44, head = new THREE.Group(); head.position.set(0, 1.31, 0); body.add(head);
   mk(sph(HR), skin, 0, 0, 0, head, HR).scale.set(1, 0.93, 0.95);
-  const big = o.eye === 'sparkle';
+  const big = o.eye === 'sparkle', arc = (x, y, z, r, c = INK, t = 0.014) => { const m = mk(new THREE.TorusGeometry(r, t, 6, 12, Math.PI), c, x, y, z, head); m.castShadow = false; return m; };
   const eyes = [-1, 1].map((s) => {
-    const e = mk(sph(0.062), '#12142b', s * 0.155, 0, 0.386, head); e.scale.set(big ? 0.95 : 0.8, big ? 1.28 : 1.1, 0.42); e.userData.sy = e.scale.y; e.castShadow = false;
+    if (o.eye === 'smile' || (o.eye === 'wink' && s > 0)) { const e = arc(s * 0.155, -0.02, 0.4, 0.055, INK, 0.016); e.userData.sy = 1; return e; } // 웃는 눈 · 윙크
+    const e = mk(sph(0.062), INK, s * 0.155, 0, 0.386, head); e.scale.set(big ? 0.95 : 0.8, o.eye === 'sleepy' ? 0.6 : big ? 1.28 : 1.1, 0.42); e.userData.sy = e.scale.y; e.castShadow = false;
     const hl = new THREE.Mesh(sph(0.024), mat('#ffffff')); hl.position.set(0.028, 0.026, 0.05); e.add(hl); if (big) { const h2 = new THREE.Mesh(sph(0.013), mat('#ffffff')); h2.position.set(-0.024, -0.028, 0.052); e.add(h2); }
-    if (o.eye === 'sharp') { const b = mk(new THREE.BoxGeometry(0.115, 0.026, 0.02), '#12142b', s * 0.155, 0.108, 0.398, head); b.rotation.z = s * 0.28; b.castShadow = false; }
+    if (o.eye === 'sharp') { const b = mk(box(0.115, 0.026, 0.02), INK, s * 0.155, 0.108, 0.398, head); b.rotation.z = s * 0.28; b.castShadow = false; }
+    if (o.eye === 'sleepy') mk(box(0.12, 0.022, 0.02), INK, s * 0.155, 0.05, 0.402, head).castShadow = false;
     return e;
   });
-  for (const s of [-1, 1]) { const c = mk(sph(0.055), '#ff9db0', s * 0.275, -0.11, 0.315, head); c.scale.set(1, 0.6, 0.35); c.castShadow = false; }
-  if (o.acc === 'mask') mk(new THREE.BoxGeometry(0.4, 0.17, 0.05), '#f4f6f8', 0, -0.13, 0.385, head);
-  else { const m = mk(new THREE.TorusGeometry(0.045, 0.013, 6, 12, Math.PI), '#b8323a', 0, -0.115, 0.404, head); m.rotation.z = Math.PI; m.castShadow = false; }
-  if (o.acc === 'glasses') for (const s of [-1, 1]) mk(new THREE.TorusGeometry(0.085, 0.013, 6, 18), '#12142b', s * 0.155, 0, 0.415, head).castShadow = false;
+  if (o.cheek !== 'none') for (const s of [-1, 1]) { if (o.cheek === 'freckle') for (const [dx, dy] of [[0, 0], [0.04, 0.025], [-0.04, 0.02]]) mk(sph(0.012), '#c98a5a', s * 0.26 + dx, -0.09 + dy, 0.33, head).castShadow = false; else { const c = mk(sph(0.055), '#ff9db0', s * 0.275, -0.11, 0.315, head); c.scale.set(1, 0.6, 0.35); c.castShadow = false; } }
+  if (o.acc === 'mask') mk(box(0.4, 0.17, 0.05), '#f4f6f8', 0, -0.13, 0.385, head);
+  else if (o.mouth === 'grin') { const m = mk(new THREE.CircleGeometry(0.062, 16, Math.PI, Math.PI), '#b8323a', 0, -0.1, 0.409, head); m.castShadow = false; }
+  else if (o.mouth === 'o') mk(sph(0.03), '#b8323a', 0, -0.125, 0.4, head).scale.set(1, 1.1, 0.4);
+  else if (o.mouth === 'cat') for (const s of [-1, 1]) arc(s * 0.03, -0.11, 0.404, 0.03, '#b8323a', 0.011).rotation.z = Math.PI;
+  else { arc(0, -0.115, 0.404, 0.045, '#b8323a', 0.013).rotation.z = Math.PI; if (o.mouth === 'tongue') mk(sph(0.03), '#ff7a8a', 0.012, -0.155, 0.4, head).scale.set(1, 1.1, 0.5); }
+  if (o.acc === 'glasses') for (const s of [-1, 1]) mk(new THREE.TorusGeometry(0.085, 0.013, 6, 18), INK, s * 0.155, 0, 0.415, head).castShadow = false;
+  else if (o.acc === 'sunglasses') { for (const s of [-1, 1]) mk(cyl(0.095, 0.03, 18), INK, s * 0.155, 0.005, 0.405, head).rotation.x = Math.PI / 2; mk(box(0.1, 0.022, 0.02), INK, 0, 0.03, 0.41, head); }
   // 머리 모양
   const hair = (geo, x, y, z, r = 0, c = hairC) => mk(geo, c, x, y, z, head, r);
   const base = () => hair(sph(0.455), 0, 0.085, -0.075, 0.455).scale.set(1.02, 0.95, 1);
   if (style === 'hood') { hair(sph(0.5), 0, 0.03, -0.07, 0.5, suit); for (const s of [-1, 1]) hair(cone(0.12, 0.24), s * 0.27, 0.47, -0.05, 0.1, suit).rotation.z = s * -0.25; hair(sph(0.12), 0, 0.27, 0.3); }
-  else if (style === 'bob') { hair(sph(0.485), 0, 0.02, -0.09, 0.485).scale.set(1.04, 1.02, 1); hair(new THREE.BoxGeometry(0.6, 0.15, 0.12), 0, 0.27, 0.3).rotation.x = -0.35; }
+  else if (style === 'bob' || style === 'long') { hair(sph(0.485), 0, 0.02, -0.09, 0.485).scale.set(1.04, 1.02, 1); hair(box(0.6, 0.15, 0.12), 0, 0.27, 0.3).rotation.x = -0.35; if (style === 'long') hair(cap(0.3, 0.42), 0, -0.34, -0.3, 0.3).scale.set(1.3, 1, 0.5); }
+  else if (style === 'bowl') { hair(sph(0.475), 0, 0.11, -0.03, 0.475).scale.set(1.03, 0.84, 1.03); hair(box(0.64, 0.1, 0.1), 0, 0.2, 0.33).rotation.x = -0.25; }
   else if (style === 'curly') { base(); [[0, 0.42, 0], [-0.3, 0.3, 0.05], [0.3, 0.3, 0.05], [-0.38, 0.1, -0.12], [0.38, 0.1, -0.12], [0, 0.3, -0.32], [-0.25, 0.05, -0.38], [0.25, 0.05, -0.38], [0, 0.37, 0.22], [-0.2, 0.36, 0.2], [0.2, 0.36, 0.2]].forEach(([x, y, z]) => hair(sph(0.17), x, y, z, 0.17)); }
   else {
     base();
     if (style === 'spiky') [[0, 0.55, -0.02, 0, 0], [-0.22, 0.46, 0, 0, 0.55], [0.22, 0.46, 0, 0, -0.55], [-0.12, 0.44, -0.26, -0.6, 0.25], [0.14, 0.44, -0.26, -0.6, -0.25], [0, 0.4, 0.26, 0.75, 0]].forEach(([x, y, z, rx, rz]) => { const c = hair(cone(0.14, 0.34), x, y, z, 0.11); c.rotation.set(rx, 0, rz); });
-    else if (style === 'pony') { hair(sph(0.15), 0, 0.1, -0.56, 0.15).scale.set(1, 1.7, 1); hair(sph(0.075), 0, 0.3, -0.47, 0, '#ff5a5f'); }
+    else if (style === 'mohawk') [[0.3, 0.7], [0.14, 0.35], [-0.04, 0], [-0.22, -0.35], [-0.38, -0.75]].forEach(([z, rx], i) => { const c = hair(cone(0.11, 0.36 - i * 0.02), 0, 0.5 - Math.abs(i - 1.5) * 0.04, z, 0.09); c.rotation.x = rx; });
+    else if (style === 'pony') { hair(sph(0.15), 0, 0.1, -0.56, 0.15).scale.set(1, 1.7, 1); hair(sph(0.075), 0, 0.3, -0.47, 0, deco); }
     else if (style === 'buns') for (const s of [-1, 1]) hair(sph(0.16), s * 0.3, 0.4, -0.05, 0.16);
+    else if (style === 'twin') for (const s of [-1, 1]) { hair(sph(0.13), s * 0.47, -0.22, -0.04, 0.13).scale.set(1, 2.3, 1); hair(sph(0.06), s * 0.45, 0.06, -0.02, 0, deco); }
     else if (style === 'cap') { hair(sph(0.468), 0, 0.13, -0.03, 0.468).scale.set(1, 0.78, 1); hair(cyl(0.22, 0.035), 0, 0.2, 0.36).scale.set(1, 1, 0.9); }
     else hair(cone(0.1, 0.2), 0.05, 0.5, 0.1, 0.08).rotation.set(0.5, 0, -0.4);
   }
   // 머리 장비
-  if (gear === 'goggles') { mk(new THREE.TorusGeometry(0.44, 0.032, 8, 28), '#4a5072', 0, 0.24, -0.07, head).rotation.x = Math.PI / 2; for (const s of [-1, 1]) { mk(cyl(0.105, 0.07, 20), '#12142b', s * 0.135, 0.26, 0.36, head).rotation.x = Math.PI / 2 - 0.25; mk(cyl(0.082, 0.078, 20), '#7fe9ff', s * 0.135, 0.262, 0.367, head).rotation.x = Math.PI / 2 - 0.25; } }
-  else if (gear === 'visor') { const v = mk(new THREE.CylinderGeometry(0.455, 0.455, 0.17, 24, 1, true, -0.95, 1.9), new THREE.MeshStandardMaterial({ color: '#5aebff', transparent: true, opacity: 0.55, roughness: 0.2, side: THREE.DoubleSide }), 0, 0.01, 0, head); v.scale.set(1, 1, 0.95); v.castShadow = false; for (const s of [-1, 1]) mk(sph(0.05), '#12142b', s * 0.4, 0.01, 0.2, head); }
-  else if (gear === 'headset') { mk(new THREE.TorusGeometry(0.47, 0.03, 8, 20, Math.PI), '#ff5a5f', 0, 0.02, -0.02, head); for (const s of [-1, 1]) mk(cyl(0.1, 0.07), '#3d4466', s * 0.47, 0, -0.02, head, 0.1).rotation.z = Math.PI / 2; mk(cyl(0.012, 0.24, 6), '#12142b', -0.4, -0.1, 0.14, head).rotation.x = Math.PI / 2 - 0.3; mk(sph(0.035), '#12142b', -0.38, -0.14, 0.27, head); }
+  if (gear === 'goggles') { mk(new THREE.TorusGeometry(0.44, 0.032, 8, 28), '#4a5072', 0, 0.24, -0.07, head).rotation.x = Math.PI / 2; for (const s of [-1, 1]) { mk(cyl(0.105, 0.07, 20), INK, s * 0.135, 0.26, 0.36, head).rotation.x = Math.PI / 2 - 0.25; mk(cyl(0.082, 0.078, 20), '#7fe9ff', s * 0.135, 0.262, 0.367, head).rotation.x = Math.PI / 2 - 0.25; } }
+  else if (gear === 'visor') { const v = mk(new THREE.CylinderGeometry(0.455, 0.455, 0.17, 24, 1, true, -0.95, 1.9), new THREE.MeshStandardMaterial({ color: '#5aebff', transparent: true, opacity: 0.55, roughness: 0.2, side: THREE.DoubleSide }), 0, 0.01, 0, head); v.scale.set(1, 1, 0.95); v.castShadow = false; for (const s of [-1, 1]) mk(sph(0.05), INK, s * 0.4, 0.01, 0.2, head); }
+  else if (gear === 'headset') { mk(new THREE.TorusGeometry(0.47, 0.03, 8, 20, Math.PI), '#ff5a5f', 0, 0.02, -0.02, head); for (const s of [-1, 1]) mk(cyl(0.1, 0.07), '#3d4466', s * 0.47, 0, -0.02, head, 0.1).rotation.z = Math.PI / 2; mk(cyl(0.012, 0.24, 6), INK, -0.4, -0.1, 0.14, head).rotation.x = Math.PI / 2 - 0.3; mk(sph(0.035), INK, -0.38, -0.14, 0.27, head); }
   else if (gear === 'sprout') { mk(cyl(0.02, 0.16, 8), '#1f8f3f', 0, 0.56, 0, head); for (const s of [-1, 1]) { const l = mk(sph(0.08), s < 0 ? '#3fbf5a' : '#7fe08f', s * 0.09, 0.66, 0, head, 0.06); l.scale.set(1.5, 0.4, 0.8); l.rotation.z = s * 0.5; } }
   else if (gear === 'helmet') { hair(sph(0.47), 0, 0.12, -0.03, 0.47, '#ffd23f').scale.set(1, 0.72, 1); hair(cyl(0.25, 0.03), 0, 0.17, 0.36, 0, '#ffd23f'); }
+  else if (gear === 'ballcap') { hair(sph(0.468), 0, 0.14, -0.03, 0.468, deco).scale.set(1, 0.76, 1); hair(cyl(0.22, 0.035), 0, 0.2, 0.38, 0, deco).scale.set(1, 1, 0.95); hair(sph(0.04), 0, 0.5, -0.03, 0, '#ffffff'); }
+  else if (gear === 'beanie') { hair(sph(0.47), 0, 0.17, -0.04, 0.47, deco).scale.set(1, 0.74, 1); hair(new THREE.TorusGeometry(0.42, 0.06, 8, 24), 0, 0.15, -0.04, 0, '#ffffff').rotation.x = Math.PI / 2; hair(sph(0.09), 0, 0.56, -0.04, 0.09, '#ffffff'); }
+  else if (gear === 'party') { hair(cone(0.16, 0.4), 0.08, 0.6, 0.02, 0.12, deco).rotation.z = -0.2; hair(sph(0.05), 0.12, 0.8, 0.02, 0, '#ffd23f'); }
+  else if (gear === 'crown') { hair(cyl(0.2, 0.1, 14), 0, 0.5, 0, 0.16, '#ffd23f'); for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; hair(cone(0.05, 0.13), Math.sin(a) * 0.17, 0.6, Math.cos(a) * 0.17, 0, '#ffd23f'); } hair(sph(0.035), 0, 0.5, 0.2, 0, '#ff5a5f'); }
+  else if (gear === 'cat') for (const s of [-1, 1]) { hair(cone(0.13, 0.24), s * 0.25, 0.5, 0, 0.1).rotation.z = s * -0.3; hair(cone(0.07, 0.14), s * 0.25, 0.48, 0.045, 0, '#ff9db0').rotation.z = s * -0.3; }
+  else if (gear === 'bunny') for (const s of [-1, 1]) { const e = hair(cap(0.075, 0.34), s * 0.16, 0.68, -0.02, 0.075, '#ffffff'); e.rotation.z = s * -0.14; hair(cap(0.035, 0.26), s * 0.16, 0.68, 0.045, 0, '#ff9db0').rotation.z = s * -0.14; }
+  else if (gear === 'flower') { for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; hair(sph(0.055), 0.3 + Math.cos(a) * 0.07, 0.3 + Math.sin(a) * 0.07, 0.26, 0, deco); } hair(sph(0.045), 0.3, 0.3, 0.29, 0, '#ffd23f'); }
+  else if (gear === 'halo') { const h = mk(new THREE.TorusGeometry(0.22, 0.03, 8, 24), new THREE.MeshBasicMaterial({ color: '#ffe680' }), 0, 0.7, 0, head); h.rotation.x = Math.PI / 2 - 0.15; h.castShadow = false; }
+  // 손에 드는 것 (animPerson 이 balloon 은 둥실, spin 은 빙글 돌려 줌)
+  let spin = null, balloon = null;
+  if (o.hand === 'balloon') { balloon = new THREE.Group(); balloon.position.set(0.44, 0.56, 0.02); body.add(balloon); mk(cyl(0.007, 1.0, 5), '#ffffff', 0, 0.5, 0, balloon); mk(sph(0.24), deco, 0, 1.2, 0, balloon, 0.24).scale.set(1, 1.15, 1); mk(cone(0.04, 0.06), deco, 0, 0.94, 0, balloon); }
+  else if (o.hand === 'pinwheel' || o.hand === 'wand') { const st = mk(cyl(0.014, 0.5, 6), o.hand === 'wand' ? '#ffffff' : '#8a5a3c', 0, -0.2, 0.2, arms[1]); st.rotation.x = Math.PI / 2 - 0.5; spin = new THREE.Group(); spin.position.set(0, -0.08, 0.42); arms[1].add(spin);
+    if (o.hand === 'wand') { const s2 = mk(new THREE.OctahedronGeometry(0.11), '#ffd23f', 0, 0, 0, spin, 0.11); s2.scale.set(1, 1, 0.45); } else for (let i = 0; i < 4; i++) { const b = mk(cone(0.07, 0.2), i % 2 ? '#ffffff' : deco, 0, 0, 0, spin); b.rotation.z = i * Math.PI / 2; b.position.set(Math.cos(i * Math.PI / 2 + Math.PI / 2) * 0.1, Math.sin(i * Math.PI / 2 + Math.PI / 2) * 0.1, 0); b.scale.z = 0.3; } }
   if (o.scale && o.scale !== 1) root.scale.setScalar(o.scale);
-  return { root, body, head, torso, eyes, legL: legs[0], legR: legs[1], armL: arms[0], armR: arms[1], scarf, phase: Math.random() * 6, carry: false, blink: rand(1, 4), wave: 0, jump: 0, lastSt: 1, look: 0, seed: Math.random() * 10, lean: 0, spin: null, spinWand: false, balloon: null };
+  return { root, body, head, torso, eyes, legL: legs[0], legR: legs[1], armL: arms[0], armR: arms[1], scarf, phase: Math.random() * 6, carry: false, blink: rand(1, 4), wave: 0, jump: 0, lastSt: 1, look: 0, seed: Math.random() * 10, lean: 0, spin, spinWand: o.hand === 'wand', balloon };
 }
 function animPerson(rig, speed, dt) { // 걸음 이벤트가 생기면 true
   if (!Number.isFinite(speed)) speed = 0; if (!Number.isFinite(rig.phase)) rig.phase = 0; // 숫자가 깨지면 몸이 통째로 사라지므로 막아 둠
@@ -977,38 +1009,76 @@ mascots[0].pos.set(-1.5, 0, 3.7); mascots[1].pos.set(1.5, 0, 3.3);
 const SKINS = ['#ffdcc0', '#f6c49c', '#d69a6e', '#8f5c3d'];
 const HAIR_COLS = ['#2b2440', '#6a4326', '#f2c230', '#ff7b54', '#3aa0ff', '#19c9a0', '#f478b6', '#f4f4ff'];
 const SUITS = ['#2f9bff', '#19c9a0', '#3fbf5a', '#ff5a5f', '#ffb020', '#7b5cff', '#f478b6', '#3d4466', '#ffffff'];
-const SCARFS = ['#ffd23f', '#ff5a5f', '#ffffff', '#19d3a2', '#2f9bff', '#f478b6', '#7b5cff', '#12142b'];
+const SCARFS = ['#ffd23f', '#ff5a5f', '#ffffff', '#19d3a2', '#2f9bff', '#f478b6', '#7b5cff', '#12142b', 'none'];
+const PANTS = ['#27408b', '#12142b', '#3d4466', '#8a5a3c', '#19c9a0', '#ff5a5f', '#f4f4ff', '#7b5cff'];
+const SHOES = ['#ffffff', '#12142b', '#ff5a5f', '#ffd23f', '#19d3a2', '#7b5cff'];
+const DECOS = ['#ff5a5f', '#ffd23f', '#19d3a2', '#2f9bff', '#7b5cff', '#f478b6', '#ffffff', '#12142b'];
 const TYPES = [['wind', '바람', '#2f9bff', '#ffd23f'], ['dew', '이슬', '#19c9a0', '#ffffff'], ['leaf', '새싹', '#3fbf5a', '#ffd23f'], ['sun', '햇살', '#ffb020', '#ff5a5f']]; // 고르면 옷·목도리 색이 따라 바뀜
-const HAIRS = [['spiky', '삐죽'], ['short', '짧은 머리'], ['bob', '단발'], ['pony', '포니테일'], ['buns', '양갈래'], ['curly', '곱슬'], ['hood', '후드']];
-const EYES = [['round', '동글'], ['sharp', '또렷'], ['sparkle', '반짝']];
-const GEARS = [['none', '없음'], ['goggles', '고글'], ['visor', '바이저'], ['headset', '헤드셋'], ['sprout', '새싹']];
-const ACCS = [['none', '없음'], ['glasses', '안경'], ['mask', '마스크']];
+const HAIRS = [['spiky', '삐죽'], ['short', '짧은 머리'], ['bob', '단발'], ['long', '긴 머리'], ['pony', '포니테일'], ['buns', '당고'], ['twin', '양갈래'], ['curly', '곱슬'], ['bowl', '바가지'], ['mohawk', '모히칸'], ['hood', '후드']];
+const EYES = [['round', '동글'], ['sharp', '또렷'], ['sparkle', '반짝'], ['smile', '웃는 눈'], ['wink', '윙크'], ['sleepy', '졸린 눈']];
+const MOUTHS = [['smile', '미소'], ['grin', '활짝'], ['cat', '고양이 입'], ['o', '동그란 입'], ['tongue', '메롱']];
+const CHEEKS = [['pink', '볼터치'], ['freckle', '주근깨'], ['none', '없음']];
+const ACCS = [['none', '없음'], ['glasses', '안경'], ['sunglasses', '선글라스'], ['mask', '마스크']];
+const TOPS = [['uniform', '수비대복'], ['hoodie', '후드티'], ['overalls', '멜빵바지'], ['stripe', '줄무늬'], ['dress', '원피스']];
+const GEARS = [['none', '없음'], ['goggles', '고글'], ['visor', '바이저'], ['headset', '헤드셋'], ['sprout', '새싹'], ['ballcap', '야구모자'], ['beanie', '비니'], ['flower', '꽃핀'], ['party', '고깔모자'], ['cat', '고양이 귀'], ['bunny', '토끼 귀'], ['halo', '천사 고리'], ['crown', '왕관']];
+const BACKS = [['none', '없음'], ['bag', '가방'], ['cape', '망토'], ['wings', '날개']];
+const HANDS = [['none', '없음'], ['balloon', '풍선'], ['pinwheel', '바람개비'], ['wand', '별 요술봉']];
+// 게임을 하면 열리는 꾸미기: '칸:값' → [이름, 여는 방법, 조건]
+const LOCKS = {
+  'gear:party': ['고깔모자', '체험을 하나 마치면', () => doneN() >= 1],
+  'hand:balloon': ['풍선', '체험을 두 개 마치면', () => doneN() >= 2],
+  'acc:sunglasses': ['선글라스', '체험을 세 개 마치면', () => doneN() >= 3],
+  'hand:pinwheel': ['바람개비', '별을 3개 모으면', () => starTotal() >= 3],
+  'back:cape': ['망토', '별을 6개 모으면', () => starTotal() >= 6],
+  'gear:cat': ['고양이 귀', '하늘 구슬을 6개 모으면', () => state.orbs.length >= 6],
+  'gear:bunny': ['토끼 귀', '하늘 구슬을 12개 모으면', () => state.orbs.length >= 12],
+  'hand:wand': ['별 요술봉', '먼지몬을 10마리 쫓아내면', () => state.pops >= 10],
+  'gear:halo': ['천사 고리', '하늘멍·마을멍·물멍으로 1분 쉬면', () => (state.meong || 0) >= 60],
+  'back:wings': ['날개', '다섯 가지 체험을 모두 마치면', () => doneN() === N_EXP],
+  'gear:crown': ['왕관', '별 15개를 모두 모으면', () => starTotal() >= N_EXP * 3],
+};
+const locked = (key, v) => { const L = LOCKS[key + ':' + v]; return L && !L[2]() ? L : null; };
+function checkUnlocks() { // 새로 열린 꾸미기를 알려 줌 (저장할 때마다 확인)
+  state.got = state.got || {}; const fresh = []; for (const id in LOCKS) if (!state.got[id] && LOCKS[id][2]()) { state.got[id] = 1; fresh.push(LOCKS[id][0]); }
+  if (fresh.length && started) setTimeout(() => { toast(`🎁 새 꾸미기 <b>${fresh.join(', ')}</b>! 👕 에서 입어 보세요`, 5200); SFX.fanfare(); }, 2600);
+}
 const CZ_TABS = [
   ['base', '기본', [['c', 'type', '어떤 지킴이?', TYPES], ['s', 'skin', '피부', SKINS]]],
   ['hair', '머리', [['c', 'hair', '머리 모양', HAIRS], ['s', 'hairColor', '머리 색', HAIR_COLS]]],
-  ['face', '얼굴', [['c', 'eye', '눈', EYES], ['c', 'acc', '얼굴 소품', ACCS]]],
-  ['wear', '옷', [['s', 'suit', '옷 색', SUITS], ['s', 'scarf', '목도리 색', SCARFS]]],
-  ['gear', '장비', [['c', 'gear', '머리 장비', GEARS]]],
+  ['face', '얼굴', [['c', 'eye', '눈', EYES], ['c', 'mouth', '입', MOUTHS], ['c', 'cheek', '볼', CHEEKS], ['c', 'acc', '얼굴 소품', ACCS]]],
+  ['wear', '옷', [['c', 'top', '옷 모양', TOPS], ['s', 'suit', '옷 색', SUITS], ['s', 'pants', '바지 색', PANTS], ['s', 'shoe', '신발 색', SHOES], ['s', 'scarf', '목도리', SCARFS]]],
+  ['gear', '장비', [['c', 'gear', '머리 장비', GEARS], ['c', 'back', '등', BACKS], ['c', 'hand', '손', HANDS], ['s', 'deco', '장비 색', DECOS]]],
 ];
-const avatarLook = (a0) => { const a = a0 && a0.v === 2 ? a0 : AV0; return { hero: true, suit: a.suit, scarf: a.scarf, hair: a.hairColor, skin: a.skin, style: a.hair, eye: a.eye, gear: a.gear, acc: a.acc }; };
+const avatarLook = (a0) => { const a = a0 && a0.v === 2 ? a0 : AV0; return { hero: true, suit: a.suit, scarf: a.scarf, hair: a.hairColor, skin: a.skin, style: a.hair, eye: a.eye, mouth: a.mouth, cheek: a.cheek, gear: a.gear, acc: a.acc, top: a.top, pants: a.pants, shoe: a.shoe, back: a.back, hand: a.hand, deco: a.deco }; };
 function mountCreator(box, draft, onChange) {
-  if (draft.v !== 2) { for (const k in draft) delete draft[k]; Object.assign(draft, AV0); } // 예전 기록(다른 모양의 캐릭터)은 새 대원 기본값으로
+  if (draft.v !== 2) { for (const k in draft) delete draft[k]; Object.assign(draft, AV0); } // 예전 기록(다른 모양의 캐릭터)은 새 기본 모습으로
+  for (const k in AV0) if (draft[k] === undefined) draft[k] = AV0[k];
   let tab = 'base', prev = null;
   box.innerHTML = `<div class="cz"><div class="cz-prev"><canvas class="czCv" aria-label="캐릭터 미리보기. 끌어서 돌려 볼 수 있어요"></canvas><button class="mini-btn" type="button" data-rand>무작위로</button></div>
     <div class="cz-side"><div class="cz-tabs" role="tablist">${CZ_TABS.map(([id, nm]) => `<button type="button" class="cz-tab" role="tab" data-tab="${id}" aria-selected="${id === tab}">${nm}</button>`).join('')}</div><div class="cz-panel"></div></div></div>`;
   const panel = $('.cz-panel', box);
   const render = () => {
+    let anyLock = false;
     panel.innerHTML = CZ_TABS.find((t) => t[0] === tab)[2].map(([kind, key, label, list]) => (kind === 's'
-      ? `<div class="field"><span>${label}</span><div class="swatches sm" data-key="${key}">${list.map((c) => `<button type="button" class="sw" data-v="${c}" style="background:${c}" aria-label="${label}" aria-pressed="${draft[key] === c}"></button>`).join('')}</div></div>`
-      : `<div class="field"><span>${label}</span><div class="mopts" data-key="${key}">${list.map(([v, nm]) => `<button type="button" class="chip" data-v="${v}" aria-pressed="${draft[key] === v}">${nm}</button>`).join('')}</div></div>`)).join('');
+      ? `<div class="field"><span>${label}</span><div class="swatches sm" data-key="${key}">${list.map((c) => `<button type="button" class="sw" data-v="${c}" style="background:${c === 'none' ? '#fff' : c}" aria-label="${label}${c === 'none' ? ' 없음' : ''}" aria-pressed="${draft[key] === c}">${c === 'none' ? '✕' : ''}</button>`).join('')}</div></div>`
+      : `<div class="field"><span>${label}</span><div class="mopts" data-key="${key}">${list.map(([v, nm]) => { const L = locked(key, v); if (L) anyLock = true; return `<button type="button" class="chip${L ? ' lock' : ''}" data-v="${v}"${L ? ` data-lock="${L[1]}"` : ''} aria-pressed="${draft[key] === v}">${L ? '🔒 ' : ''}${nm}</button>`; }).join('')}</div></div>`)).join('') + (anyLock ? '<p class="fine">🔒 는 체험을 하고 별·구슬을 모으면 열려요. 눌러 보면 방법을 알려 줘요.</p>' : '');
     box.querySelectorAll('.cz-tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
   };
   const changed = () => { render(); SFX.tick(); if (prev) prev.rebuild(); if (onChange) onChange(draft); };
+  const free = (key, list) => { const v = pick(list.filter((x) => !locked(key, Array.isArray(x) ? x[0] : x))); return Array.isArray(v) ? v[0] : v; };
   box.addEventListener('click', (e) => {
     const t = e.target.closest('[data-tab]'); if (t) { tab = t.dataset.tab; render(); SFX.tick(); return; }
-    if (e.target.closest('[data-rand]')) { Object.assign(draft, { type: pick(TYPES)[0], suit: pick(SUITS), scarf: pick(SCARFS), hair: pick(HAIRS)[0], hairColor: pick(HAIR_COLS), skin: pick(SKINS), eye: pick(EYES)[0], gear: pick(GEARS)[0], acc: Math.random() < 0.75 ? 'none' : pick(ACCS)[0] }); changed(); if (prev) prev.cheer(); return; }
+    if (e.target.closest('[data-rand]')) { // 무작위: 열려 있는 것 가운데서만, 장비는 반쯤만
+      const half = (key, list) => (Math.random() < 0.5 ? 'none' : free(key, list));
+      Object.assign(draft, { type: free('type', TYPES), suit: pick(SUITS), scarf: pick(SCARFS), pants: pick(PANTS), shoe: pick(SHOES), deco: pick(DECOS), hair: free('hair', HAIRS), hairColor: pick(HAIR_COLS), skin: pick(SKINS), eye: free('eye', EYES), mouth: free('mouth', MOUTHS), cheek: free('cheek', CHEEKS), top: free('top', TOPS), gear: half('gear', GEARS), acc: Math.random() < 0.7 ? 'none' : free('acc', ACCS), back: half('back', BACKS), hand: half('hand', HANDS) });
+      changed(); if (prev) prev.cheer(); return;
+    }
     const v = e.target.closest('[data-v]'), g = v && v.closest('[data-key]');
-    if (g) { draft[g.dataset.key] = v.dataset.v; if (g.dataset.key === 'type') { const ty = TYPES.find((x) => x[0] === v.dataset.v); draft.suit = ty[2]; draft.scarf = ty[3]; } changed(); if (prev && g.dataset.key === 'type') prev.cheer(); }
+    if (g) {
+      if (v.dataset.lock) { toast(`🔒 ${v.dataset.lock} 열려요`, 3200); SFX.tick(); return; }
+      draft[g.dataset.key] = v.dataset.v; if (g.dataset.key === 'type') { const ty = TYPES.find((x) => x[0] === v.dataset.v); draft.suit = ty[2]; draft.scarf = ty[3]; }
+      changed(); if (prev && ['type', 'gear', 'back', 'hand', 'top'].includes(g.dataset.key)) prev.cheer();
+    }
   });
   render();
   requestAnimationFrame(() => { prev = startPreview($('.czCv', box), draft); });
@@ -1076,7 +1146,7 @@ const tapRing = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.42, 24), new THREE.
 let started = false, dlg = null, modalOpen = false, quizTimer = null;
 const meong = { on: false, kind: '', t: 0, left: 0, total: 0, mood: 'day', sayK: -1 }; // 쉬어 가기(하늘멍·마을멍) 상태
 const enf = { on: false }, cine = { on: false, t: 0, dur: 3.6 }; // 단속 카메라 체험 · 하늘이 걷히는 장면
-const busy = () => !started || !!dlg || modalOpen || meong.on || enf.on || cine.on;
+const busy = () => !started || !!dlg || modalOpen || meong.on || enf.on || cine.on || !!frameOn;
 function talk(name, pages, btns) { dlg = { name, pages: [].concat(pages), i: 0, btns: btns && btns.length ? btns : [{ label: '확인', primary: true }] }; renderDlg(); }
 function intro(who, easy, more, label, start) { const go = { label, primary: true, onClick: start }; talk(who, easy, [{ label: '자세히 알려 줘', onClick: () => talk(who, more, [go]) }, go]); } // 쉬운 말 먼저, 숫자와 기준은 '자세히'에서
 function renderDlg() {
@@ -1145,7 +1215,8 @@ function actM1() {
 /* =========================================================
    임무 ② 1월 — 비상저감조치 상황실 (발령 판단 → 조치 고르기 → 위기경보 4단계)
    ========================================================= */
-function playM2() {
+function playM2() { playHq('room', 1); } // 상황실 근무는 2D 미니게임으로
+function playM2Old() {
   const bar = (v) => `<span class="fbar"><i style="width:${Math.min(100, v / 1.2)}%;background:${grade(v)[1]}"></i><em style="left:${50 / 1.2}%"></em><em style="left:${75 / 1.2}%"></em></span>`; // 농도 막대 (세로줄: 50, 75)
   const fc = (today, adv, tom, ok, why) => ({
     html: `<p class="q-lead" style="margin-bottom:10px">내일 <b>비상저감조치</b>를 발령할까요?</p><table class="fc"><tr><th>오늘 0~16시 평균</th><td>${today}㎍/㎥${bar(today)}</td></tr><tr><th>오늘 주의보·경보</th><td>${adv ? '주의보 발령' : '없음'}</td></tr><tr><th>내일 예보</th><td>${tom}㎍/㎥${bar(tom)}</td></tr></table><p class="fine" style="text-align:left;margin-top:8px">막대의 세로줄은 50과 75㎍/㎥예요</p>`,
@@ -1210,7 +1281,7 @@ function actM2() {
   intro('상황실 주무관', ['어서 와요! 먼지가 아주 심한 날이 이어지면 <b>비상저감조치</b>를 내려요. 차를 덜 다니게 하고 공장·공사장을 덜 돌려서 <b>공기를 빨리 맑게</b> 하는 거예요.', '기준은 숫자 <b>50</b>과 <b>75</b>! <b>오늘도 내일도 50을 넘거나</b>, <b>내일이 75를 넘으면</b> 내려요. 자료를 보고 판단해 주세요!'], [
     '어서 와요! 오늘은 모의훈련 날이에요. 공기가 머물면서 초미세먼지가 <b>82㎍/㎥</b>까지 올랐다고 해 볼게요. 이럴 때 내리는 게 <b>비상저감조치</b>예요. 자동차 운행을 제한하고 사업장·공사장 가동을 줄여서 짧은 기간에 공기를 개선하는 조치죠.',
     '발령 기준은 세 가지이고, <b>하나만 해당해도</b> 발령해요.<br>① 오늘(0~16시) 평균 <b>50 초과</b> + 내일 <b>50 초과</b> 예보<br>② 오늘 <b>주의보·경보</b> 발령 + 내일 <b>50 초과</b> 예보<br>③ 내일 <b>75 초과</b> 예보',
-    '자료를 보고 발령할지 판단한 다음, 시행할 조치를 고르고, 위기경보 단계까지 맞춰 주세요!',
+    '자료를 보고 발령할지 판단한 다음, 발령했을 때 할 일을 골라 주세요!',
   ], '상황실 근무 시작!', playM2);
 }
 
@@ -1379,6 +1450,21 @@ mascots.forEach((m) => addI({ pos: m.pos, r: 2, stop: 1.7, tapOnly: true, label:
 const mkAuto = (x, z, stop, cb) => ({ x, z, stop, cb, best: 1e9, stuck: 0 });
 let goDest = null; // 바로 가기로 고른 곳 (노란 화살표가 가리킴)
 function nearestSrc() { let best = null, bd = 1e9; for (const s of SRC) { if (state.src[s.k]) continue; const d = Math.hypot(s.x - player.pos.x, s.z - player.pos.z); if (d < bd) { bd = d; best = s; } } return best; }
+/* 2D 미니게임(hq/)·오락기 슈팅(arcade/)을 마을 안에서 바로 열기: 화면 위에 겹쳐 띄우고, 끝나면 결과를 받아 옴 */
+let frameOn = null;
+function openFrame(url, info) { if (frameOn) return; const f = document.createElement('iframe'); f.src = url; f.title = '미니게임'; f.allow = 'autoplay; fullscreen'; f.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9999;background:#12142b'; document.body.appendChild(f); frameOn = Object.assign({ f }, info); SFX.whoosh(); setTimeout(() => f.focus(), 300); }
+function playHq(id, e) { // id: lab·road·room·plant·town, e: 이 게임이 채워 주는 체험 번호 (보너스 게임은 -1). 내 캐릭터 모습을 숫자로 넘겨 2D에서도 같은 모습
+  const a = state.avatar && state.avatar.v === 2 ? state.avatar : AV0, ix = (list, v) => Math.max(0, list.indexOf(v));
+  const look = [ix(TYPES.map((t) => t[0]), a.type), { bowl: 1, bob: 1, long: 1, pony: 2, buns: 3, twin: 3, curly: 4, hood: 5 }[a.hair] || 0, ix(HAIR_COLS, a.hairColor), ix(SKINS, a.skin), { sharp: 1, sparkle: 2 }[a.eye] || 0, ix(SUITS, a.suit), Math.min(7, ix(SCARFS, a.scarf)), { goggles: 1, visor: 2, headset: 3, sprout: 4 }[a.gear] || 0].join('.');
+  openFrame(`hq/?embed=${id}&look=${look}`, { id, e });
+}
+addEventListener('message', (ev) => {
+  if (ev.origin !== location.origin || !ev.data || ev.data.src !== 'hq' || !frameOn) return; const { f, id, e } = frameOn, d = ev.data; f.remove(); frameOn = null; window.focus();
+  if (d.stars == null) return; // 그냥 나옴
+  if (!d.stars) return talk('뭉게', ['아깝다! 한 번 더 해 보면 별을 딸 수 있을 거야.'], [{ label: '나중에' }, { label: '다시 하기', primary: true, onClick: () => playHq(id, e) }]);
+  if (e >= 0) return missionDone(e, d.stars, d.stat || '', d.facts || []);
+  state.bonus = state.bonus || {}; state.bonus[id] = Math.max(state.bonus[id] || 0, d.stars); save(); SFX.ok(); cheer(player.P); toast(`🎮 ${d.head || '미니게임'} · ${'★'.repeat(d.stars)}`, 3600);
+});
 function nextTask() { for (const e of EXP_ORDER) if (!state.done[e]) { const t = e === 3 ? nearestSrc() || SRC[0] : SPOTS.find((x) => x.e === e); return { e, t, name: e === 3 ? '마을 배출원 줄이기' : t.name }; } return null; } // 아직 안 한 체험 가운데 첫 번째
 function goTo(t) { if (!t) return; goDest = t; player.auto = mkAuto(t.x, t.z, t.stop || 1.6, () => { goDest = null; t.act(); }); }
 function openGo() { // 어디로 갈지 고르면 알아서 걸어감
@@ -1387,12 +1473,10 @@ function openGo() { // 어디로 갈지 고르면 알아서 걸어감
   const rows = [
     ...[3, 0, 1, 2].map((k) => SPOTS[k]).map((s) => [`${M_ICON[s.e]} ${s.name}`, st(s.e), s]),
     ['🔥 마을 배출원 줄이기', state.done[3] ? st(3) : `${solved}/5 해결`, nearestSrc() || SRC[0]],
-    ['🕹️ 먼지몬 잡기 오락기', `최고 ${state.best}점`, ARCADE],
+    ['🕹️ 오락기', '게임 네 가지', ARCADE],
     ['☁️ 하늘멍 자리', '누워서 쉬기', SKYSPOT],
     ['🪑 마을멍 벤치', '앉아서 쉬기', BENCH],
     ['🦆 물멍 연못', '물가에서 쉬기', PONDSPOT],
-    ['🎮 미니게임 다섯 가지', '하늘 수비대 (2D)', { link: 'hq/' }],
-    ['👾 옛날 오락기 슈팅', '하늘 수비대 아케이드', { link: 'arcade/' }],
   ];
   openModal(`<div class="q-head"><b>📍 어디로 갈까요?</b></div><div class="golist">${rows.map(([nm, s2], k) => `<button class="gorow" data-k="${k}"><span>${nm}</span><small>${s2}</small></button>`).join('')}</div>`);
   sheet.querySelectorAll('.gorow').forEach((b) => (b.onclick = () => { SFX.click(); const t = rows[+b.dataset.k][2]; closeModal(); if (t.link) { location.href = t.link; return; } goTo(t); }));
@@ -1592,7 +1676,7 @@ function openCustomizer() {
    쉬어 가기 — 하늘멍(돗자리에 누워 하늘 보기) · 마을멍(벤치에 앉아 마을 보기)
    체험을 마칠수록 하늘이 맑아져서, 누워서 보는 하늘도 달라져요
    ========================================================= */
-const ARCADE = { x: -4.2, z: 9.4, stop: 1.6, tag: [-4.2, 9.4, 3], act: () => playArcade() };
+const ARCADE = { x: -4.2, z: 9.4, stop: 1.6, tag: [-4.2, 9.4, 3], act: () => talk('오락기', ['무슨 게임을 할까? 고르면 화면 속으로 들어가!'], [{ label: '먼지몬 잡기', onClick: playArcade }, { label: '5등급 스캐너', onClick: () => playHq('road', -1) }, { label: '굴뚝 공단', onClick: () => playHq('plant', -1) }, { label: '하늘 수비대 슈팅', primary: true, onClick: () => openFrame('arcade/', { id: 'arcade', e: -1 }) }]) };
 const SKYSPOT = { x: -26.5, z: 15, stop: 0.6, tag: [-26.5, 15, 2.2], act: () => startMeong('sky') };
 const BENCH = { x: 5.6, z: 8.2, rot: -0.6, stop: 1.5, tag: [5.6, 8.2, 2], act: () => startMeong('town') };
 flat(3.4, 2.3, '#f2a7c3', SKYSPOT.x, SKYSPOT.z, 0.03); for (let i = 0; i < 4; i++) flat(0.42, 2.3, '#ffffff', SKYSPOT.x - 1.26 + i * 0.84, SKYSPOT.z, 0.035);
@@ -1670,13 +1754,14 @@ npc(26.6, 8.3, 0.3, { top: 'shirt', tie: false, shirt: '#ffffff', pants: '#3d405
 
 function actLab() {
   if (state.done[4]) return talk('박사님', ['어느새 미세먼지 박사가 다 됐구나! 한 번 더 해 볼래?'], [{ label: '괜찮아요' }, { label: '다시 도전', primary: true, onClick: playLab }]);
-  intro('박사님', ['어서 오렴! 여기는 <b>미세먼지 연구소</b>란다. 미세먼지는 <b>눈에 안 보일 만큼 작은 먼지</b>야.', '너무 작아서 숨 쉴 때 <b>몸속 깊이</b> 들어올 수 있어. 그래서 먼지가 많은 날엔 조심해야 해. 세 가지 실험 놀이로 알아보자!'], [
+  intro('박사님', ['어서 오렴! 여기는 <b>미세먼지 연구소</b>란다. 미세먼지는 <b>눈에 안 보일 만큼 작은 먼지</b>야.', '너무 작아서 숨 쉴 때 <b>몸속 깊이</b> 들어올 수 있어. 그래서 먼지가 많은 날엔 조심해야 해. 실험 놀이로 알아보자!'], [
     '어서 오렴! 여기는 <b>미세먼지 연구소</b>란다. 미세먼지는 눈에 안 보일 만큼 작은 먼지야. 지름이 10㎛보다 작으면 <b>미세먼지(PM10)</b>, 2.5㎛보다 작으면 <b>초미세먼지(PM2.5)</b>라고 불러. 1㎛는 1mm의 천 분의 1이란다!',
     '너무 작아서 코털이나 기관지에서 걸러지지 않고 <b>폐 깊숙이</b> 들어가. 그래서 농도가 높은 날에는 조심해야 해.',
-    '세 가지 실험 놀이로 알아보자. ① 얼마나 작을까? ② 미세먼지 신호등 ③ 어디서 나올까?',
+    '실험 놀이로 알아보자. ① 얼마나 작을까? ② 몸속에 들어오면? ③ 오늘 공기는 무슨 색?',
   ], '실험 시작!', playLab);
 }
-function playLab() {
+function playLab() { playHq('lab', 4); } // 연구소 실험은 2D 미니게임으로
+function playLabOld() {
   let total = 0;
   labSize((a) => { total += a; labSignal((b) => { total += b; labSource((c) => { total += c; missionDone(4, total >= 23 ? 3 : total >= 17 ? 2 : 1, `26점 가운데 ${total}점`, [
     '<b>미세먼지(PM10)</b>는 지름 10㎛ 이하, <b>초미세먼지(PM2.5)</b>는 2.5㎛ 이하. 머리카락 굵기의 <b>약 20~30분의 1</b>이에요.',
@@ -1778,11 +1863,11 @@ function runHit(n) {
   runHud();
 }
 function actM3() {
-  if (state.done[2]) return talk('방울이', ['심부름 대작전, 한 번 더 해 볼까?'], [{ label: '괜찮아' }, { label: '다시 도전', primary: true, onClick: playM3 }]);
+  if (state.done[2]) return talk('방울이', ['심부름 대작전, 한 번 더 해 볼까?'], [{ label: '괜찮아' }, { label: '행동 릴레이', onClick: () => playHq('town', 2) }, { label: '심부름 다시', primary: true, onClick: playM3 }]);
   talk('방울이', [
     '오늘은 초미세먼지가 <b>매우 나쁨</b>이야. 이런 날엔 <b>밖에 나가는 걸 줄이는 게</b> 첫째! 그런데 공기청정기 필터가 다 돼서, 연구소 박사님께 꼭 받아 와야 해.',
     '건강을 지키면서 다녀오자. ❤️는 다섯 개! <b>먼지 구름</b>은 돌아서 가고, 쫓아오는 <b>먼지몬</b>은 피하고, 💧물과 🍊귤을 만나면 챙겨. 구름 속에서 뛰면 숨이 가빠져서 먼지를 더 마시니까 조심!',
-  ], [{ label: '출발 준비!', primary: true, onClick: playM3 }]);
+  ], [{ label: '집 안 행동 릴레이', onClick: () => playHq('town', 2) }, { label: '심부름 출발!', primary: true, onClick: playM3 }]);
 }
 function playM3() {
   if (run.on) return;
@@ -2441,7 +2526,7 @@ addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight, fal
 
 syncStart(); applyWorld(); mountStartCz(); labelsEl.style.visibility = 'hidden';
 let last = performance.now();
-function frame(ts) { const dt = Math.min(0.05, Math.max(0, (ts - last) / 1000)); last = ts; update(dt); renderFrame(); requestAnimationFrame(frame); }
+function frame(ts) { const dt = Math.min(0.05, Math.max(0, (ts - last) / 1000)); last = ts; if (!frameOn) { update(dt); renderFrame(); } requestAnimationFrame(frame); } // 겹쳐 띄운 게임을 하는 동안은 마을을 멈춤
 requestAnimationFrame(frame);
 window.__worldReady = true;
 if (location.hash === '#debug') window.__g = { get state() { return state; }, player, inters, SPOTS, SRC, step: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) update(dt); renderFrame(); }, go: goTo, openGo, startMeong, stopMeong, meong, missionDone, playM1, playM2, playM3, showReport, refreshHud, playArcade, openBadges, openCustomizer, mons, orbs, mascots, enf, cine, FX, gfx, takePhoto, openSettings, clearCine, enfJudge, setMood, camera, run, playLab, playM3, runStop, runHit };
