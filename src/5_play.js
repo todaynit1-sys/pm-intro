@@ -7,7 +7,7 @@ function stageOn(title) { stageOff(); hide(); $('#stage').hidden = false; $('#gT
 const gScore = (s) => { $('#gSc').textContent = s; };
 const gTime = (f) => { const b = $('#gTb'); if (f === null) { b.hidden = true; return; } b.hidden = false; b.firstChild.style.transform = `scaleX(${clamp(f, 0, 1)})`; b.firstChild.style.background = f < 0.3 ? '#ff5a5f' : '#19d3a2'; };
 const gBot = (html) => { $('#gb').innerHTML = html; };
-function playGame(id, again) { const i = DIST.findIndex((d) => d.id === id), d = DIST[i]; wipe(again ? null : { k: 'MISSION 0' + (i + 1), t: d.name, s: d.tg }, () => { paused = false; stageOn(d.name); AU.music('game'); setScene(GAME[id]()); }); }
+function playGame(id, again) { const i = DIST.findIndex((d) => d.id === id), d = DIST[i]; wipe(again ? null : { k: d.part, t: d.name, s: d.q }, () => { paused = false; stageOn(d.name); AU.music('game'); setScene(GAME[id]()); }); }
 function backHub(o) { wipe(null, () => { paused = false; setScene(hubScene(o)); }); }
 $('#gX').onclick = () => {
   AU.tap(); paused = true;

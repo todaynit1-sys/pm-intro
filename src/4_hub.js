@@ -2,13 +2,13 @@
 /* =========================================================
    화면 흐름: 제목 → 대원 꾸미기 → 이야기 → 본부(도시 파노라마에서 작전지 고르기) → 작전 → 본부 …
    ========================================================= */
-const DIST = [
-  { id: 'lab', name: '먼지 연구소', tg: '미세먼지란?', desc: '초미세먼지는 얼마나 작을까? 오늘 공기는 무슨 색일까?', mon: 'gas' },
-  { id: 'road', name: '5등급 검문소', tg: '계절관리제 · 운행제한', desc: '평일 아침 6시부터 밤 9시까지! 5등급 차량을 찾아내요.', mon: 'smog' },
-  { id: 'room', name: '비상 상황실', tg: '비상저감조치', desc: '오늘 농도와 내일 예보를 보고, 발령할지 판단해요.', mon: 'soot' },
-  { id: 'plant', name: '굴뚝 공단', tg: '배출원 줄이기', desc: '발전소·공사장·들판… 먼지가 나오는 곳을 대책으로 막아요.', mon: 'fire' },
-  { id: 'town', name: '우리 동네', tg: '시민 행동요령', desc: '먼지가 매우 나쁜 날! 일곱 가지 행동을 재빨리 해내요.', mon: 'dust' },
-  { id: 'arcade', name: '오락실', tg: '보너스 게임', desc: '하늘에서 내려오는 먼지몬을 막는, 옛날 오락기 슈팅 게임.', mon: null },
+const DIST = [ // part = 고르기 판에 보이는 '부분', q = 무엇이 궁금한지, learn = 게임으로 알 수 있는 것
+  { id: 'lab', name: '먼지 연구소', part: '미세먼지란?', pc: '#12a886', q: '얼마나 작고, 왜 조심해야 할까?', learn: ['초미세먼지(PM2.5)는 머리카락보다 얼마나 작을까', '왜 폐 깊숙이 들어갈까', '좋음·보통·나쁨·매우 나쁨은 몇부터일까'], mon: 'gas' },
+  { id: 'road', name: '5등급 검문소', part: '계절관리제', pc: '#2f7de1', q: '5등급 차는 언제 못 다닐까?', learn: ['어느 요일, 몇 시부터 몇 시까지 단속할까', '단속에서 빼 주는 차는 어떤 차일까', '어기면 과태료는 얼마일까'], mon: 'smog' },
+  { id: 'room', name: '비상 상황실', part: '비상저감조치', pc: '#e5484d', q: '언제 발령하고, 무엇을 할까?', learn: ['오늘 평균과 내일 예보가 얼마면 발령할까', '기준 숫자 50과 75는 무슨 뜻일까', '발령하면 곧바로 무엇을 할까'], mon: 'soot' },
+  { id: 'plant', name: '굴뚝 공단', part: '계절관리제', pc: '#2f7de1', q: '먼지는 어디서, 어떻게 줄일까?', learn: ['미세먼지는 어디에서 나올까', '발전소·공장·공사장·들판·도로마다 쓰는 대책', '계절관리제로 얼마나 줄었을까'], mon: 'fire' },
+  { id: 'town', name: '우리 동네', part: '시민 행동요령', pc: '#2f9e4f', q: '먼지 많은 날엔 어떻게 할까?', learn: ['먼지가 매우 나쁜 날의 일곱 가지 행동', '어떤 마스크를 써야 할까', '집 안 공기는 어떻게 관리할까'], mon: 'dust' },
+  { id: 'arcade', name: '오락실', part: '보너스', pc: '#7b5cff', q: '옛날 오락기로 복습하기', learn: ['넉 달 계절관리제를 슈팅 게임으로 다시 한번', '먼지몬이 내려오면 비상저감조치 단추', '대책 카드를 고르면 먼지몬이 줄어요'], mon: null },
 ];
 const arcStore = () => { try { return JSON.parse(localStorage.getItem('sky-guard-v1')) || {}; } catch (e) { return {}; } };
 const isDone = (i) => (DIST[i].id === 'arcade' ? !!arcStore().clear : !!S.stars[DIST[i].id]);
@@ -93,37 +93,44 @@ function hudSync(pm = pmNow()) {
   $('#uBar').style.width = clamp((F.start - pm) / (F.start - F.goal), 0.03, 1) * 100 + '%';
 }
 function hubScene(o = {}) {
-  let sel = clamp(S.sel || 0, 0, DIST.length - 1), camX = sel * DW, hxw = sel * DW + 100, hv = 0, st = 0, face = 'smile', joy = 0;
+  const ORDER = [0, 3, 1, 2, 4, 5], c = $('#uCard');   // 고르기 판 순서: 미세먼지란? → 계절관리제(둘) → 비상저감조치 → 시민 행동요령 → 보너스
+  let sel = clamp(S.sel || 0, 0, DIST.length - 1), camX = sel * DW, hxw = sel * DW + 100, hv = 0, st = 0, joy = 0, open = false, hy = 356;
   const H = { cl: o.pm0 === undefined ? cleanNow() : clamp((F.start - o.pm0) / (F.start - F.goal), 0, 1) };
-  const card = (anim) => {
-    const d = DIST[sel], arc = d.id === 'arcade', n = S.stars[d.id] || 0, c = $('#uCard');
-    c.innerHTML = `<span class="no">${arc ? '★' : '0' + (sel + 1)}</span><span class="tg"><span>${d.tg}</span></span><h2>${d.name}</h2><p>${d.desc}</p><div class="row">${arc ? `<span style="font-weight:900;font-size:calc(var(--u)*12.5);white-space:nowrap">${arcStore().best ? '최고 ' + arcStore().best.toLocaleString() + '점' : '기록 없음'}</span>` : `<span class="stars">${starHtml(n)}</span>`}<button class="b go" id="uGo">${arc ? '들어가기' : n ? '다시 출동' : '출동!'}</button></div><div class="dots">${DIST.map((x, k) => `<i class="${k === sel ? 'on' : ''} ${isDone(k) ? 'ok' : ''}"></i>`).join('')}</div>`;
-    $('#uGo').onclick = enter; if (anim) { c.classList.remove('in'); void c.offsetWidth; c.classList.add('in'); }
-  };
-  const go = (i) => { i = clamp(i, 0, DIST.length - 1); if (i === sel) return; sel = i; S.sel = i; save(); AU.whoosh(); card(true); };
+  const pop = () => { c.classList.remove('in'); void c.offsetWidth; c.classList.add('in'); };
+  function grid() { // 궁금한 부분을 한눈에 보고 고르는 판
+    open = false; c.className = 'mc pn grid';
+    c.innerHTML = `<div class="gh"><span class="tg"><span>무엇이 궁금해요?</span></span><small>고르면 딱 맞는 게임으로 알려 줘요</small></div><div class="tgrid">${ORDER.map((i) => { const d = DIST[i]; return `<button class="tc ${isDone(i) ? 'ok' : ''}" data-i="${i}"><em style="background:${d.pc}">${d.part}</em><b>${d.q}</b>${d.id === 'arcade' ? '' : `<span class="stars">${starHtml(S.stars[d.id] || 0)}</span>`}</button>`; }).join('')}</div>`;
+    $$('.tc', c).forEach((b) => (b.onclick = () => { AU.tap(); pick(+b.dataset.i); })); pop();
+  }
+  function detail() { // 고른 부분: 무엇을 알 수 있는지 + 게임으로 알아보기
+    open = true; const d = DIST[sel], arc = d.id === 'arcade', n = S.stars[d.id] || 0, best = arcStore().best; c.className = 'mc pn';
+    c.innerHTML = `<span class="no">${arc ? '★' : '0' + (ORDER.indexOf(sel) + 1)}</span><span class="tg" style="background:${d.pc};color:#fff"><span>${d.part}</span></span><h2>${d.q}</h2><div class="where">${d.name}${arc ? (best ? ' · 최고 ' + best.toLocaleString() + '점' : '') : `<span class="stars">${starHtml(n)}</span>`}</div><ul class="learn">${d.learn.map((t) => `<li>${t}</li>`).join('')}</ul><div class="row"><button class="b sm w" id="uBack" style="flex:0 0 auto">◀ 다른 것</button><button class="b go" id="uGo">${arc ? '오락기 켜기' : n ? '한 번 더 하기' : '게임으로 알아보기'}</button></div>`;
+    $('#uGo').onclick = enter; $('#uBack').onclick = () => { AU.tap(); grid(); }; pop();
+  }
+  const pick = (i) => { if (i !== sel) AU.whoosh(); sel = i; S.sel = i; save(); detail(); };
+  const go = (dir) => { const k = clamp(ORDER.indexOf(sel) + dir, 0, ORDER.length - 1); if (ORDER[k] === sel) return; sel = ORDER[k]; S.sel = sel; save(); AU.whoosh(); if (open) detail(); };
   function enter() { AU.tap(); const d = DIST[sel]; if (d.id === 'arcade') arcadeDoor(); else playGame(d.id); }
   return {
     enter() {
-      stageOff(); hide(); $('#ui').hidden = false; AU.music('hub'); hudSync(F.start - H.cl * (F.start - F.goal)); card(true);
-      $('#uPrev').onclick = () => go(sel - 1); $('#uNext').onclick = () => go(sel + 1);
+      stageOff(); hide(); $('#ui').hidden = false; AU.music('hub'); hudSync(F.start - H.cl * (F.start - F.goal)); grid();
       $('#uMe').onclick = () => { AU.tap(); wipe(null, () => creator(false)); }; $('#uNote').onclick = () => { AU.tap(); book(0, hide); };
       $('#uMeong').onclick = () => { AU.tap(); wipe({ k: 'HEALING', t: '하늘멍', s: '잠깐 쉬어 가요' }, () => setScene(meongScene())); }; $('#uSet').onclick = () => { AU.tap(); settings(); };
       const to = cleanNow();
       if (to > H.cl + 0.001) { const pm0 = Math.round(F.start - H.cl * (F.start - F.goal)); tw(H, { cl: to }, 2.2, E.io, 0.7); after(0.8, () => { kin('하늘이 맑아졌다!', `초미세먼지 ${pm0} → ${pmNow()}㎍/㎥`); AU.star(); joy = 2.6; confetti(40); }); after(3.4, () => { if (doneN() === MIDS.length && !S.fin) finale(); }); }
-      else if (o.hello) after(0.6, () => toast('◀ ▶ 로 작전지를 고르고 <b>출동!</b> 을 눌러요'));
     },
     update(dt) {
       camX += (sel * DW - camX) * (1 - Math.exp(-dt * 4.5)); const tx = sel * DW + 100; hv += ((tx - hxw) * 34 - hv * 10) * dt; hxw += hv * dt; joy -= dt;
-      if (Math.abs(hv) > 70 && (st -= dt) <= 0) { st = 0.035; fx.push({ k: 'dot', x: hxw - camX + 180 - Math.sign(hv) * 26, y: 372 + rand(-30, 6), vx: -hv * 0.5, vy: 0, gr: 0, life: 0.35, max: 0.35, col: '#ffffff', r: rand(1.5, 3.2) }); }
+      const top = (c.getBoundingClientRect().top - (V.h / 2 - 320 * V.s)) / V.s; hy += (clamp(top - 30, 250, 356) - hy) * (1 - Math.exp(-dt * 6));   // 고르기 판에 가리지 않게 대원을 판 위로
+      if (Math.abs(hv) > 70 && (st -= dt) <= 0) { st = 0.035; fx.push({ k: 'dot', x: hxw - camX + 180 - Math.sign(hv) * 26, y: hy + rand(-30, 6), vx: -hv * 0.5, vy: 0, gr: 0, life: 0.35, max: 0.35, col: '#ffffff', r: rand(1.5, 3.2) }); }
       const pm = F.start - H.cl * (F.start - F.goal); if (Math.round(pm) !== +$('#uPm').textContent) hudSync(pm);
     },
-    draw() { drawWorld(camX, 'day', H.cl); hazeOver(H.cl); const mv = Math.abs(hv) > 60; drawHero(hxw - camX + 180, 372, 0.96, S.look, T, { pose: joy > 0 ? 'cheer' : mv ? 'fly' : 'idle', face: joy > 0 ? 'happy' : mv ? 'open' : face, flip: hv < -60, lean: clamp(Math.abs(hv) * 0.0011, 0, 0.3), wind: clamp(0.45 + Math.abs(hv) / 500, 0, 1) }); },
+    draw() { drawWorld(camX, 'day', H.cl); hazeOver(H.cl); const mv = Math.abs(hv) > 60; drawHero(hxw - camX + 180, hy, 0.96, S.look, T, { pose: joy > 0 ? 'cheer' : mv ? 'fly' : open ? 'point' : 'idle', face: joy > 0 ? 'happy' : mv ? 'open' : 'smile', flip: hv < -60, lean: clamp(Math.abs(hv) * 0.0011, 0, 0.3), wind: clamp(0.45 + Math.abs(hv) / 500, 0, 1) }); },
     up(x, y, dx, dy) {
-      if (Math.abs(dx) > 34 && Math.abs(dx) > Math.abs(dy)) return go(sel + (dx < 0 ? 1 : -1));
+      if (Math.abs(dx) > 34 && Math.abs(dx) > Math.abs(dy)) return go(dx < 0 ? 1 : -1);
       const wx = x - 180 + camX, i = Math.round((wx - 26) / DW); if (i < 0 || i >= DIST.length || Math.abs(wx - 26 - i * DW) > 130 || y < GY - 330 || y > GY + 70) return;
-      if (i === sel) enter(); else go(i);
+      if (i === sel && open) enter(); else { AU.tap(); pick(i); }
     },
-    key(c) { if (c === 'ArrowLeft') go(sel - 1); else if (c === 'ArrowRight') go(sel + 1); else if (c === 'Enter' || c === 'Space') enter(); else return false; },
+    key(k) { if (k === 'ArrowLeft') go(-1); else if (k === 'ArrowRight') go(1); else if (k === 'Enter' || k === 'Space') { if (open) enter(); else { AU.tap(); detail(); } } else if (k === 'Escape' && open) grid(); else return false; },
   };
 }
 function arcadeDoor() {

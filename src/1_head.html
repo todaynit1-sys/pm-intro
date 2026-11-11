@@ -76,6 +76,25 @@ body.wide .tools{width:auto;margin-top:0}
 .dots i.on{background:var(--sun);width:calc(var(--u)*18);border-radius:99px}
 .dots i.ok{background:var(--mint)}
 
+/* 본부: 궁금한 부분 고르기 판 · 고른 부분 카드 */
+.mc.grid{padding:calc(var(--u)*11) calc(var(--u)*11) calc(var(--u)*12)}
+body.wide .mc.grid{max-width:calc(var(--u)*640)}
+.gh{display:flex;align-items:center;gap:calc(var(--u)*8);margin-bottom:calc(var(--u)*8)}
+.gh small{font-size:calc(var(--u)*10.5);font-weight:700;color:#5b6080;line-height:1.3}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*7)}
+body.wide .tgrid{grid-template-columns:repeat(3,1fr)}
+.tc{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:calc(var(--u)*3);min-width:0;min-height:calc(var(--u)*56);padding:calc(var(--u)*6) calc(var(--u)*9) calc(var(--u)*5);border:calc(var(--u)*2.5) solid var(--ink);border-radius:calc(var(--u)*13);background:#fff;box-shadow:calc(var(--u)*3) calc(var(--u)*3) 0 var(--ink);text-align:left;transition:transform .06s,box-shadow .06s}
+.tc:active{transform:translate(calc(var(--u)*2),calc(var(--u)*2));box-shadow:calc(var(--u)*1) calc(var(--u)*1) 0 var(--ink)}
+.tc:focus-visible{outline:calc(var(--u)*3) solid var(--sun);outline-offset:calc(var(--u)*1)}
+.tc em{font-style:normal;padding:calc(var(--u)*1) calc(var(--u)*7);border-radius:99px;color:#fff;font-size:calc(var(--u)*9.5);font-weight:900;white-space:nowrap}
+.tc b{font-family:var(--disp);font-weight:400;font-size:calc(var(--u)*14);line-height:1.2}
+.tc .stars{margin-top:auto;font-size:calc(var(--u)*12)}
+.tc.ok{background:#eefff7}
+.tc.ok::after{content:'✓';position:absolute;right:calc(var(--u)*6);top:calc(var(--u)*5);display:grid;place-items:center;width:calc(var(--u)*17);height:calc(var(--u)*17);border:calc(var(--u)*1.5) solid var(--ink);border-radius:50%;background:var(--mint);color:#fff;font-size:calc(var(--u)*10);font-weight:900}
+.where{display:flex;align-items:center;gap:calc(var(--u)*7);margin-bottom:calc(var(--u)*6);font-size:calc(var(--u)*11.5);font-weight:900;color:#5b6080}
+.where .stars{font-size:calc(var(--u)*14)}
+.learn{margin:0;padding:calc(var(--u)*7) calc(var(--u)*10) calc(var(--u)*7) calc(var(--u)*25);border:calc(var(--u)*2) dashed var(--ink);border-radius:calc(var(--u)*11);background:#fff;font-size:calc(var(--u)*12.5);line-height:1.5}
+
 /* 작전 화면 (가운데 360×640 틀) */
 #stage{position:fixed;left:50%;top:50%;z-index:12;width:calc(var(--u)*360);height:calc(var(--u)*640);transform:translate(-50%,-50%);display:flex;flex-direction:column;padding:calc(var(--u)*10) calc(var(--u)*12) calc(var(--u)*14);pointer-events:none}
 #stage>*{pointer-events:auto}
@@ -191,7 +210,7 @@ body.wide #ovl.title .tmenu{margin-left:calc(var(--u)*46)}
 #wipe .wt b{font-family:var(--disp);font-weight:400;font-size:calc(var(--u)*44);line-height:1.1}
 #wipe .wt span{font-size:calc(var(--u)*14);font-weight:700;opacity:.9}
 @keyframes wtIn{from{transform:translateX(calc(var(--u)*-90)) skewX(-20deg);opacity:0}}
-#toast{position:fixed;left:0;right:0;bottom:calc(var(--u)*196);z-index:40;display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*6);padding:0 calc(var(--u)*14);pointer-events:none}
+#toast{position:fixed;left:0;right:0;bottom:calc(var(--u)*272);z-index:40;display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*6);padding:0 calc(var(--u)*14);pointer-events:none}
 #toast div{max-width:calc(var(--u)*330);padding:calc(var(--u)*6) calc(var(--u)*14);border:calc(var(--u)*2.5) solid var(--ink);border-radius:calc(var(--u)*14);background:var(--paper);box-shadow:calc(var(--u)*3) calc(var(--u)*3) 0 var(--ink);font-size:calc(var(--u)*12.5);font-weight:700;line-height:1.4;text-align:center;animation:tin 3.4s ease forwards}
 @keyframes tin{0%{opacity:0;transform:translateY(calc(var(--u)*14))}7%,86%{opacity:1;transform:none}100%{opacity:0}}
 #meongBar{position:fixed;left:0;right:0;bottom:calc(var(--u)*18);z-index:15;display:flex;justify-content:center;gap:calc(var(--u)*8);flex-wrap:wrap;padding:0 calc(var(--u)*10);transition:opacity .6s}
@@ -206,7 +225,7 @@ body.wide #ovl.title .tmenu{margin-left:calc(var(--u)*46)}
     <div class="pm"><small>우리 도시 초미세먼지</small><div class="n"><b id="uPm">33</b><span>㎍/㎥</span><em id="uGrade">보통</em></div><div class="bar"><i id="uBar"></i><u>목표 19</u></div></div>
     <div class="tools"><button class="b sm w" id="uNote">수첩</button><button class="b sm w" id="uMeong">하늘멍</button><button class="b sm w" id="uSet">설정</button></div>
   </div>
-  <div class="bot"><button class="nav" id="uPrev" aria-label="이전 작전지">◀</button><div class="mc pn" id="uCard"></div><button class="nav" id="uNext" aria-label="다음 작전지">▶</button></div>
+  <div class="bot"><div class="mc pn" id="uCard"></div></div>
 </div>
 <div id="stage" hidden><div class="gt"><button class="b sm w x" id="gX" aria-label="그만하기">✕</button><span class="ti" id="gTi"></span><span class="sc" id="gSc"></span></div><div class="tb" id="gTb" hidden><i></i></div><div id="gm"></div><div id="gb"></div></div>
 <div id="meongBar" hidden></div>
