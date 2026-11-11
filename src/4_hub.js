@@ -33,7 +33,8 @@ function titleScene() {
       stageOff(); AU.music('hub');
       const L = (s, i) => `<span style="animation-delay:${0.15 + i * 0.09}s">${s}</span>`;
       show(`<div class="logo"><span class="tg"><span>미세먼지 계절관리제 대작전</span></span><h1>${L('하', 0)}${L('늘', 1)}<br><em>${L('수', 2)}${L('비', 3)}${L('대', 4)}</em></h1><p>구름보드를 타고 뿌연 도시를 되찾아라!</p></div>
-        <div class="tmenu"><button class="b go big" id="tGo">${S.made ? '이어서 출동!' : '출동!'}</button><div class="rowb" style="width:100%"><button class="b sm w" id="tNote">수첩</button><button class="b sm w" id="tSnd">${AU.muted ? '소리 꺼짐' : '소리 켜짐'}</button></div></div>`, 'clear title');
+        <div class="tmenu"><button class="b go big" id="tGo">${S.made ? '이어서 출동!' : '출동!'}</button><div class="rowb" style="width:100%"><button class="b sm w" id="tNote">수첩</button><button class="b sm w" id="tSnd">${AU.muted ? '소리 꺼짐' : '소리 켜짐'}</button></div><button class="b sm w" id="tTown" style="width:100%">◀ 마을로 돌아가기</button></div>`, 'clear title');
+      $('#tTown').onclick = () => { location.href = '../'; };
       $('#tGo').onclick = () => { AU.init(); AU.tap(); if (S.made) wipe(null, () => setScene(hubScene())); else wipe({ k: 'NEW MEMBER', t: '대원 등록', s: '나만의 수비대원을 만들어요' }, () => creator(true)); };
       $('#tNote').onclick = () => { AU.init(); AU.tap(); book(0, () => setScene(titleScene())); };
       $('#tSnd').onclick = () => { AU.init(); $('#tSnd').textContent = AU.toggle() ? '소리 꺼짐' : '소리 켜짐'; };
@@ -137,7 +138,7 @@ function arcadeDoor() {
   const a = arcStore();
   show(`<div class="pnl pn"><button class="b sm w xx" id="aX">✕</button><span class="tg"><span>보너스 게임</span></span><h2>오락실 · 하늘 수비대 아케이드</h2><p>본부 옆 오락실에 있는 <b>옛날 오락기</b>예요. 구름을 타고 물방울을 쏴서, 12월부터 3월까지 넉 달 동안 하늘에서 내려오는 먼지몬을 막아요. 🚨 단추가 켜지면 <b>비상저감조치</b>!</p>${a.best ? `<p>내 최고 기록 <b>${a.best.toLocaleString()}점</b> · 완주 ${a.clear || 0}번</p>` : ''}<button class="b go big" id="aGo">오락기 켜기</button></div>`);
   $('#aX').onclick = () => { AU.tap(); hide(); };
-  $('#aGo').onclick = () => { AU.tap(); S.sel = 5; save(); wipe({ k: 'INSERT COIN', t: '오락실', s: '옛날 오락기 화면으로 바뀌어요' }, () => { location.href = 'arcade/?hq=1'; }); };
+  $('#aGo').onclick = () => { AU.tap(); S.sel = 5; save(); wipe({ k: 'INSERT COIN', t: '오락실', s: '옛날 오락기 화면으로 바뀌어요' }, () => { location.href = '../arcade/?hq=1'; }); };
 }
 
 /* ---------- 하늘멍 (쉬어 가기) ---------- */
