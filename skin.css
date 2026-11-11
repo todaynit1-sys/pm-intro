@@ -24,6 +24,7 @@ kbd{border:2px solid var(--ink);border-bottom-width:3px;border-radius:6px;backgr
 .btn:hover{border-color:var(--ink);background:var(--sun)}
 .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
 .btn.primary{background:var(--coral);border-color:var(--ink);color:#fff}
+.btn.primary,#startBtn,#act{text-shadow:1px 1.5px 0 rgba(18,20,43,.5)} /* 산호색 위 흰 글씨가 또렷하게 */
 .btn.primary:hover{background:#ff7074}
 .btn.big{min-height:52px;font-size:21px}
 .btn.ghost{border-color:transparent;background:transparent;box-shadow:none;color:var(--muted);font-family:var(--body);font-weight:700;font-size:13px}
@@ -65,6 +66,7 @@ kbd{border:2px solid var(--ink);border-bottom-width:3px;border-radius:6px;backgr
 .chip{border:2px solid var(--ink);border-radius:10px;background:#fff;color:var(--ink);font-weight:700}
 .cz-panel .chip{border-radius:10px}
 .chip[aria-pressed="true"]{border-color:var(--ink);background:var(--sun);color:var(--ink);box-shadow:2px 2px 0 var(--ink);font-weight:900}
+.chip.lock{border-style:dashed}
 .cz-panel .mopts.gender .chip,.cz-panel .mopts.kinds .chip{border-width:2.5px;border-radius:14px}
 .cz-panel .mopts.gender .chip[aria-pressed="true"],.cz-panel .mopts.kinds .chip[aria-pressed="true"]{border-width:2.5px;box-shadow:var(--hs)}
 .sw,.swatches.sm .sw{border:2.5px solid var(--ink);box-shadow:none}
@@ -96,11 +98,12 @@ kbd{border:2px solid var(--ink);border-bottom-width:3px;border-radius:6px;backgr
 .icon-btn:hover{border-color:var(--ink);background:var(--sun)}
 .icon-btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
 #mini{border:2.5px solid var(--ink);border-radius:14px;box-shadow:var(--hm)}
-#go{border:2.5px solid var(--ink);background:var(--sun);color:var(--ink);box-shadow:var(--hm);font-family:var(--disp);font-weight:400;font-size:16px}
+#go{padding:10px 16px;border:2.5px solid var(--ink);background:var(--sun);color:var(--ink);box-shadow:var(--hm);font-family:var(--disp);font-weight:400;font-size:15px;line-height:1.25}
 #go:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
 #act{border:2.5px solid var(--ink);background:var(--coral);color:#fff;box-shadow:var(--hm);font-family:var(--disp);font-weight:400;font-size:16px}
 #act kbd{background:#fff;color:var(--ink);border-color:var(--ink)}
 #act:active{transform:translate(calc(-50% + 3px),3px);box-shadow:1px 1px 0 var(--ink)}
+.touch #act{font-size:15px}
 .touch #act:active{transform:translate(3px,3px)}
 #joy{background:rgba(255,253,244,.4);border:3px solid var(--ink);-webkit-backdrop-filter:none;backdrop-filter:none}
 #joy i{background:var(--sun);border:3px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
@@ -258,17 +261,17 @@ kbd{border:2px solid var(--ink);border-bottom-width:3px;border-radius:6px;backgr
 .mg-top{border-radius:99px;font-family:var(--disp);font-weight:400;font-size:15px}
 .mg-top b{font-weight:400}
 .mg-top span{color:var(--muted);font-family:var(--body);font-weight:700}
-.mg-breath{font-family:var(--disp);font-weight:400;font-size:18px;letter-spacing:.03em;text-shadow:none;-webkit-text-stroke:4px var(--ink);paint-order:stroke fill}
+.mg-breath{font-family:var(--disp);font-weight:400;font-size:20px;letter-spacing:.05em;text-shadow:none;-webkit-text-stroke:3px var(--ink);paint-order:stroke fill}
 .mg-breath i{border:3px solid #fff;background:rgba(255,255,255,.16)}
 .mg-say:not(:empty){padding:5px 14px;border-radius:12px;background:rgba(18,20,43,.66);text-shadow:none}
 .mg-chip{border:2px solid var(--ink);border-radius:10px;background:#fff;color:var(--ink);font-weight:700}
 .mg-chip.on{background:var(--sun);border-color:var(--ink);color:var(--ink);box-shadow:2px 2px 0 var(--ink);font-weight:900}
 
 /* ---------- 12. 알림 · 안내 ---------- */
-#toast{border:2.5px solid var(--ink);border-radius:14px;background:var(--paper);color:var(--ink);box-shadow:var(--hm);opacity:0;transition:transform .35s cubic-bezier(.2,1.2,.3,1),opacity .2s}
+#toast{width:max-content;border:2.5px solid var(--ink);border-radius:14px;background:var(--paper);color:var(--ink);box-shadow:var(--hm);opacity:0;transition:transform .35s cubic-bezier(.2,1.2,.3,1),opacity .2s}
 #toast.on{opacity:1}
 #toast b{font-weight:900}
-#nogl{background:var(--paper);color:var(--ink);font-weight:700}
+#nogl{background:var(--paper);color:var(--ink);font-family:var(--disp);font-weight:400;font-size:19px;line-height:1.5}
 .confetti{border:1.5px solid var(--ink);border-radius:2px}
 
 /* ---------- 13. 좁은 화면 (휴대폰) ---------- */
@@ -282,6 +285,7 @@ kbd{border:2px solid var(--ink);border-bottom-width:3px;border-radius:6px;backgr
   .g-face{margin-right:0}
   .lvl{padding:1px 6px;border-width:1px}
   .q-head{font-size:17px}
+  .mg-chip{padding:7px 9px}
   .run-top{left:max(10px,env(safe-area-inset-left));transform:none;max-width:calc(100vw - 114px)} /* 그만하기 단추와 겹치지 않게 왼쪽으로 */
   .note tr:has(> :nth-child(3)) :is(th,td){padding:5px;font-size:11.5px} /* 칸이 셋 넘는 표: 옆으로 안 밀리게 */
   .note tr:has(> :nth-child(3)) th:not(:first-child){white-space:normal}
