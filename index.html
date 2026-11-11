@@ -450,6 +450,28 @@ kbd{display:inline-block;min-width:1.5em;padding:1px 5px;border-radius:5px;borde
   .gauge{width:150px}.g-face{font-size:22px}.g-num{font-size:26px}.g-unit{font-size:9px}.tools{max-width:150px}.icon-btn{height:36px;min-width:36px}#mini{width:150px;height:99px}
   .sg-num{font-size:64px}.scope{height:230px}.tile b{font-size:26px}
 }
+/* 먼지몬 막기 (마을 화면 위에 겹쳐서 하는 30초 게임) */
+#dustGame{position:fixed;inset:0;z-index:30;touch-action:none;-webkit-user-select:none;user-select:none}
+#dustCv{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+.dg-top{position:absolute;left:50%;top:max(12px,env(safe-area-inset-top));transform:translateX(-50%);display:flex;gap:8px;pointer-events:none;white-space:nowrap}
+.dg-pill{display:flex;align-items:baseline;gap:5px;padding:5px 14px;border:2.5px solid #12142b;border-radius:99px;background:#12142b;color:#fff;font-weight:800;font-size:13px;box-shadow:3px 3px 0 rgba(18,20,43,.35)}
+.dg-pill b{font-family:'Black Han Sans','Noto Sans KR',sans-serif;font-weight:400;font-size:24px;font-variant-numeric:tabular-nums}
+.dg-combo{background:#ffd23f;color:#12142b;font-family:'Black Han Sans','Noto Sans KR',sans-serif;font-weight:400;font-size:16px}
+.dg-bar{position:absolute;left:50%;top:calc(max(12px,env(safe-area-inset-top)) + 56px);transform:translateX(-50%);width:min(320px,72vw);height:16px;border:2.5px solid #12142b;border-radius:99px;background:rgba(18,20,43,.55);overflow:hidden;pointer-events:none}
+.dg-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#19d3a2,#7fe9ff);transition:width .25s}
+.dg-bar span{position:absolute;inset:0;text-align:center;font-size:10px;font-weight:900;color:#fff;line-height:11px}
+.dg-msg{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);font-family:'Black Han Sans','Noto Sans KR',sans-serif;font-size:clamp(44px,10vw,84px);color:#fff;-webkit-text-stroke:8px #12142b;paint-order:stroke fill;text-shadow:4px 6px 0 #12142b;pointer-events:none;white-space:nowrap}
+.dg-msg.small{font-size:clamp(20px,4.5vw,30px)}
+.dg-msg.pop{animation:dgpop .45s cubic-bezier(.2,1.6,.4,1)}
+@keyframes dgpop{from{transform:translate(-50%,-50%) scale(.3) rotate(-8deg);opacity:0}}
+.dg-x{position:absolute;right:max(14px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));padding:9px 15px;border:2.5px solid #12142b;border-radius:12px;background:#fffdf4;color:#12142b;font-weight:900;font-size:13px;box-shadow:3px 3px 0 #12142b;cursor:pointer}
+.lb{list-style:none;margin:0;padding:0;counter-reset:lb;text-align:left;border:2px dashed #12142b;border-radius:12px;background:#fff;max-height:210px;overflow:auto}
+.lb li{counter-increment:lb;display:flex;gap:8px;align-items:baseline;padding:5px 12px;font-size:13px;font-weight:700}
+.lb li+li{border-top:1px solid #e6e1cf}
+.lb li::before{content:counter(lb);width:18px;font-family:'Black Han Sans',sans-serif;color:#5b6080}
+.lb li span:first-child{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb .d{font-size:11px;color:#8a8fa8}.lb .s{font-variant-numeric:tabular-nums;font-weight:900}
+.lb li.me{background:#fff3c4}
 /* 잠긴 꾸미기 (게임을 하면 열림) · 목도리 없음 칸 */
 .chip.lock{opacity:.55}
 .sw[data-v="none"]{display:grid;place-items:center;font-size:11px;font-weight:900;color:#12142b}
@@ -521,6 +543,14 @@ kbd{display:inline-block;min-width:1.5em;padding:1px 5px;border-radius:5px;borde
 </div>
 <div id="modal" hidden><div class="sheet card" id="sheet" role="dialog" aria-modal="true"></div></div>
 <div id="toast" role="status"></div>
+
+<div id="dustGame" hidden>
+  <canvas id="dustCv" aria-label="먼지몬 막기 게임 화면. 몰려오는 먼지몬을 눌러서 잡아요"></canvas>
+  <div class="dg-top"><div class="dg-pill"><b id="dgScore">0</b><span>점</span></div><div class="dg-pill dg-combo" id="dgCombo" hidden></div><div class="dg-pill"><span>남은 시간</span><b id="dgTime">30</b></div></div>
+  <div class="dg-bar" aria-hidden="true"><i id="dgBar"></i><span>하늘 맑음</span></div>
+  <div class="dg-msg" id="dgMsg"></div>
+  <button class="dg-x" id="dgX" type="button">그만하기</button>
+</div>
 
 <div id="start">
   <div class="title-col">
@@ -1153,7 +1183,7 @@ const tapRing = new THREE.Mesh(new THREE.RingGeometry(0.3, 0.42, 24), new THREE.
 let started = false, dlg = null, modalOpen = false, quizTimer = null;
 const meong = { on: false, kind: '', t: 0, left: 0, total: 0, mood: 'day', sayK: -1 }; // 쉬어 가기(하늘멍·마을멍) 상태
 const enf = { on: false }, cine = { on: false, t: 0, dur: 3.6 }; // 단속 카메라 체험 · 하늘이 걷히는 장면
-const busy = () => !started || !!dlg || modalOpen || meong.on || enf.on || cine.on || !!frameOn;
+const busy = () => !started || !!dlg || modalOpen || meong.on || enf.on || cine.on || !!frameOn || dust.on;
 function talk(name, pages, btns) { dlg = { name, pages: [].concat(pages), i: 0, btns: btns && btns.length ? btns : [{ label: '확인', primary: true }] }; renderDlg(); }
 function intro(who, easy, more, label, start) { const go = { label, primary: true, onClick: start }; talk(who, easy, [{ label: '자세히 알려 줘', onClick: () => talk(who, more, [go]) }, go]); } // 쉬운 말 먼저, 숫자와 기준은 '자세히'에서
 function renderDlg() {
@@ -1457,6 +1487,137 @@ mascots.forEach((m) => addI({ pos: m.pos, r: 2, stop: 1.7, tapOnly: true, label:
 const mkAuto = (x, z, stop, cb) => ({ x, z, stop, cb, best: 1e9, stuck: 0 });
 let goDest = null; // 바로 가기로 고른 곳 (노란 화살표가 가리킴)
 function nearestSrc() { let best = null, bd = 1e9; for (const s of SRC) { if (state.src[s.k]) continue; const d = Math.hypot(s.x - player.pos.x, s.z - player.pos.z); if (d < bd) { bd = d; best = s; } } return best; }
+/* =========================================================
+   먼지몬 막기 — 30초 동안 사방에서 몰려오는 먼지몬을 눌러 하늘을 맑게 (마을 화면 위에서 바로 함)
+   큰 먼지몬은 세 번, 하얀 구름 친구는 누르면 안 됨, 바람 요정은 한꺼번에 날려 줌. 빨리 이어 잡으면 콤보 ×2, ×3
+   ========================================================= */
+const DUST_SEC = 30, DUST_CLEAR = 700; // 700점이면 하늘이 완전히 맑아짐
+const dust = { on: false, phase: 'off', t: 0, cd: 0, endT: 0, score: 0, popped: 0, combo: 0, maxCombo: 0, lastPop: -9, spawnT: 0, mons: [], parts: [], winds: 0, W: 0, H: 0, k: 1 };
+const dgEl = $('#dustGame'), dgCv = $('#dustCv'), dgx = dgCv.getContext('2d');
+const buzz = (p) => { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* ignore */ } };
+function dustResize() { const d = Math.min(devicePixelRatio || 1, 2); dust.W = innerWidth; dust.H = innerHeight; dgCv.width = Math.round(dust.W * d); dgCv.height = Math.round(dust.H * d); dgx.setTransform(d, 0, 0, d, 0, 0); dust.k = clamp(Math.min(dust.W, dust.H) / 700, 0.62, 1.25); }
+function dustMsg(text, big) { const m = $('#dgMsg'); m.textContent = text; m.className = `dg-msg${big ? '' : ' small'}`; void m.offsetWidth; m.classList.add('pop'); }
+function dustUI() {
+  $('#dgScore').textContent = dust.score.toLocaleString();
+  const c = $('#dgCombo'), mult = dust.combo >= 10 ? 3 : dust.combo >= 5 ? 2 : 1; c.hidden = dust.combo < 2; c.textContent = `콤보 ${dust.combo}${mult > 1 ? ` · ×${mult}` : ''}`;
+  $('#dgBar').style.width = `${clamp(dust.score / DUST_CLEAR, 0, 1) * 100}%`;
+}
+function startDust() {
+  if (!started || dust.on || meong.on || enf.on || run.on) return; if (modalOpen) closeModal();
+  Object.assign(dust, { on: true, phase: 'count', t: 0, cd: 3.2, endT: 0, score: 0, popped: 0, combo: 0, maxCombo: 0, lastPop: -9, spawnT: 0.3, mons: [], parts: [], winds: 0 });
+  dgEl.hidden = false; dustResize(); dustUI(); $('#dgTime').textContent = String(DUST_SEC); dustMsg('준비!', true);
+}
+function stopDust() { if (!dust.on) return; dust.on = false; dust.phase = 'off'; dgEl.hidden = true; toast('먼지몬 막기를 그만뒀어요.'); }
+function dustSpawn() {
+  const { W, H, k } = dust, el = dust.t, r = Math.random(), top = 104, m = 60 * k;
+  let type = 'small';
+  if (el > 8 && dust.winds < 2 && r < 0.045) type = 'wind'; else if (el > 4 && r < 0.16) type = 'friend'; else if (r < 0.38) type = 'big';
+  const edge = Math.floor(Math.random() * 4); let x, y;
+  if (type === 'wind') { x = -m; y = rand(top + 40, H * 0.6); }
+  else if (edge === 0) { x = -m; y = rand(top, H - m); } else if (edge === 1) { x = W + m; y = rand(top, H - m); } else if (edge === 2) { x = rand(m, W - m); y = H + m; } else { x = rand(m, W - m); y = top - m * 0.3; }
+  const tx = type === 'wind' ? W + m * 2 : rand(W * 0.15, W * 0.85), ty = type === 'wind' ? y + rand(-40, 40) : rand(top + 40, H * 0.85);
+  const sp = (type === 'small' ? rand(95, 150) : type === 'big' ? rand(55, 85) : type === 'friend' ? rand(60, 90) : 230) * k * (1 + el / 60), d = Math.hypot(tx - x, ty - y) || 1;
+  dust.mons.push({ type, x, y, vx: ((tx - x) / d) * sp, vy: ((ty - y) / d) * sp, r: (type === 'big' ? 54 : type === 'wind' ? 34 : type === 'friend' ? 38 : 30) * k * rand(0.92, 1.08), hp: type === 'big' ? 3 : 1, age: 0, life: type === 'wind' ? 6 : rand(5.5, 7.5), ph: rand(0, 6), hit: 0, out: 0 });
+}
+function dustBits(x, y, c, n, sp = 220, size = 6) { for (let i = 0; i < n; i++) { const a = rand(0, Math.PI * 2), v = rand(0.4, 1) * sp * dust.k; dust.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, c, r: rand(0.6, 1.2) * size * dust.k, age: 0, life: rand(0.4, 0.8), g: 1 }); } }
+function dustFloat(x, y, text, c) { dust.parts.push({ x, y, vx: 0, vy: -70, c, text, r: 0, age: 0, life: 0.9, g: 0 }); }
+const dustR = (m) => m.r * (m.type === 'big' ? 0.62 + m.hp * 0.13 : 1);
+function dustPop(m) { dustBits(m.x, m.y, m.type === 'wind' ? '#bfeaff' : m.type === 'big' ? '#4b4860' : '#6d6a88', 12); dustBits(m.x, m.y, '#ffffff', 5, 160, 4); }
+function dustHit(m, i) {
+  if (m.type === 'friend') { dust.score = Math.max(0, dust.score - 20); dust.combo = 0; SFX.bad(); buzz(60); dustFloat(m.x, m.y - m.r, '-20 구름 친구예요!', '#ffb3b3'); m.out = 0.01; m.vy = -Math.abs(m.vy) - 140; dustUI(); return; }
+  if (m.type === 'big' && m.hp > 1) { m.hp--; m.hit = 0.3; dust.score += 5; SFX.tick(); dustBits(m.x, m.y, '#4b4860', 5, 150); dustUI(); return; }
+  const combo = dust.t - dust.lastPop < 1.0 ? dust.combo + 1 : 1, mult = combo >= 10 ? 3 : combo >= 5 ? 2 : 1;
+  dust.combo = combo; dust.lastPop = dust.t; dust.maxCombo = Math.max(dust.maxCombo, combo);
+  if (m.type === 'wind') { // 바람 요정: 화면의 먼지몬을 한꺼번에 날려 버림
+    dust.winds++; let n = 0; for (const o of dust.mons) if (o !== m && o.type !== 'friend' && !o.out) { n++; dustPop(o); o.out = 0.01; }
+    const pts = 50 + n * 10 * mult; dust.score += pts; dust.popped += n; dustFloat(m.x, m.y - m.r, `바람 휘익! +${pts}`, '#bfeaff'); SFX.whoosh(); SFX.ok(); buzz([20, 30]);
+  } else { const pts = (m.type === 'big' ? 30 : 10) * mult; dust.score += pts; dust.popped++; dustFloat(m.x, m.y - m.r, `+${pts}`, mult > 1 ? '#ffd23f' : '#ffffff'); SFX.pop(); buzz(12); }
+  dustPop(m); dust.mons.splice(i, 1); dustUI();
+}
+dgCv.addEventListener('pointerdown', (e) => {
+  if (!dust.on || dust.phase !== 'play') return; e.preventDefault();
+  const x = e.clientX, y = e.clientY, slop = 14 * dust.k + 6;
+  for (let i = dust.mons.length - 1; i >= 0; i--) { const m = dust.mons[i]; if (m.out) continue; if (Math.hypot(x - m.x, y - m.y) < dustR(m) + slop) { dustHit(m, i); return; } }
+  dustBits(x, y, '#ffffff', 3, 90, 3);
+});
+$('#dgX').addEventListener('click', stopDust);
+addEventListener('resize', () => { if (dust.on) dustResize(); });
+function updateDust(dt) {
+  const { W, H } = dust;
+  if (dust.phase === 'count') {
+    const prev = Math.ceil(dust.cd); dust.cd -= dt; const now = Math.ceil(dust.cd);
+    if (now !== prev && now > 0 && now <= 3) { dustMsg(String(now), true); SFX.tick(); }
+    if (dust.cd <= 0) { dust.phase = 'play'; dustMsg('시작!', true); SFX.ok(); setTimeout(() => { if (dust.phase === 'play') $('#dgMsg').textContent = ''; }, 700); }
+  } else if (dust.phase === 'play') {
+    dust.t += dt; const left = Math.max(0, DUST_SEC - dust.t); $('#dgTime').textContent = String(Math.ceil(left));
+    dust.spawnT -= dt; if (dust.spawnT <= 0 && dust.mons.length < 16) { dustSpawn(); dust.spawnT = lerp(0.85, 0.32, Math.min(1, dust.t / DUST_SEC)) * rand(0.7, 1.2); }
+    if (dust.combo && dust.t - dust.lastPop > 1.0) { dust.combo = 0; dustUI(); }
+    if (left <= 0) { dust.phase = 'end'; dust.endT = 1.5; dustMsg('끝!', true); SFX.whoosh(); }
+  } else if (dust.phase === 'end') { dust.endT -= dt; if (dust.endT <= 0) { finishDust(); return; } }
+  for (let i = dust.mons.length - 1; i >= 0; i--) {
+    const m = dust.mons[i]; m.age += dt; m.hit = Math.max(0, m.hit - dt);
+    m.x += m.vx * dt + Math.sin(m.age * 3 + m.ph) * 18 * dt; m.y += m.vy * dt + Math.cos(m.age * 2.3 + m.ph) * 14 * dt;
+    if (m.age > m.life || dust.phase === 'end') m.out = Math.max(m.out, 0.001);
+    if (m.out) m.out += dt * 2.5;
+    if (m.out >= 1 || ((m.x < -160 || m.x > W + 160 || m.y < -160 || m.y > H + 160) && m.age > 1.5)) dust.mons.splice(i, 1);
+  }
+  for (let i = dust.parts.length - 1; i >= 0; i--) { const p = dust.parts[i]; p.age += dt; if (p.age > p.life) { dust.parts.splice(i, 1); continue; } p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 420 * dt * p.g; p.vx *= 0.98; }
+  drawDust();
+}
+function drawDust() {
+  const { W, H } = dust, g = dgx; g.clearRect(0, 0, W, H);
+  g.fillStyle = `rgba(150,128,90,${(0.42 * (1 - clamp(dust.score / DUST_CLEAR, 0, 1))).toFixed(3)})`; g.fillRect(0, 0, W, H); // 뿌연 하늘이 점수만큼 맑아짐
+  for (const m of dust.mons) dustDrawMon(g, m);
+  for (const p of dust.parts) {
+    const k = 1 - p.age / p.life; g.globalAlpha = Math.max(0, k);
+    if (p.text) { g.fillStyle = p.c; g.font = `400 ${Math.round(22 * dust.k + 6)}px 'Black Han Sans',${FONT}`; g.textAlign = 'center'; g.strokeStyle = '#12142b'; g.lineWidth = 5; g.lineJoin = 'round'; g.strokeText(p.text, p.x, p.y); g.fillText(p.text, p.x, p.y); }
+    else { g.fillStyle = p.c; g.beginPath(); g.arc(p.x, p.y, p.r * (0.5 + k * 0.5), 0, Math.PI * 2); g.fill(); }
+  }
+  g.globalAlpha = 1;
+}
+function dustDrawMon(g, m) { // 먼지몬(심술 난 먼지 구름) · 구름 친구 · 바람 요정 — 잉크 테두리
+  const r = dustR(m) * (1 + (m.hit > 0 ? Math.sin(m.hit * 40) * 0.07 : 0)), friend = m.type === 'friend', wind = m.type === 'wind', ink = '#12142b';
+  g.save(); g.globalAlpha = Math.max(0, (1 - Math.min(1, m.out)) * Math.min(1, m.age * 4)); g.translate(m.x, m.y);
+  const body = friend ? '#ffffff' : wind ? '#d6f2ff' : m.type === 'big' ? '#4b4860' : '#6d6a88', shade2 = friend ? '#d5e9ff' : wind ? '#8fd3ff' : m.type === 'big' ? '#34313f' : '#55526a';
+  const puffs = [[0, 0, 1], [-0.62, 0.18, 0.62], [0.62, 0.16, 0.64], [-0.32, -0.5, 0.6], [0.34, -0.52, 0.58]];
+  g.fillStyle = ink; for (const [px, py, pr] of puffs) { g.beginPath(); g.arc(px * r, py * r + r * 0.04, pr * r + 3, 0, Math.PI * 2); g.fill(); }
+  g.fillStyle = shade2; for (const [px, py, pr] of puffs) { g.beginPath(); g.arc(px * r, py * r + r * 0.07, pr * r, 0, Math.PI * 2); g.fill(); }
+  g.fillStyle = body; for (const [px, py, pr] of puffs) { g.beginPath(); g.arc(px * r, py * r, pr * r * 0.94, 0, Math.PI * 2); g.fill(); }
+  if (wind) { g.strokeStyle = '#ffffff'; g.lineWidth = r * 0.1; g.lineCap = 'round'; for (const s of [-1, 1]) { g.beginPath(); g.arc(s * r * 0.15, r * 0.05, r * 0.55, s > 0 ? 3.6 : 0.5, s > 0 ? 5.6 : 2.5); g.stroke(); } g.fillStyle = '#ffd23f'; for (let k = 0; k < 3; k++) { const a = m.age * 3 + k * 2.1; g.beginPath(); g.arc(Math.cos(a) * r * 1.25, Math.sin(a) * r * 1.0, r * 0.11, 0, Math.PI * 2); g.fill(); } }
+  const ey = -r * 0.06, ex = r * 0.28;
+  if (friend || wind) { // 웃는 눈 ^^ + 볼터치 + 미소
+    g.strokeStyle = ink; g.lineWidth = r * 0.08; g.lineCap = 'round';
+    for (const s of [-1, 1]) { g.beginPath(); g.arc(s * ex, ey + r * 0.05, r * 0.1, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); }
+    g.fillStyle = 'rgba(255,140,160,.6)'; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(s * r * 0.46, r * 0.16, r * 0.12, r * 0.08, 0, 0, Math.PI * 2); g.fill(); }
+    g.beginPath(); g.arc(0, r * 0.14, r * 0.14, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+  } else if (m.hit > 0) { // 맞으면 어질어질 ×_×
+    g.strokeStyle = '#ffffff'; g.lineWidth = r * 0.07; g.lineCap = 'round';
+    for (const s of [-1, 1]) { const cx = s * ex; g.beginPath(); g.moveTo(cx - r * 0.09, ey - r * 0.09); g.lineTo(cx + r * 0.09, ey + r * 0.09); g.moveTo(cx + r * 0.09, ey - r * 0.09); g.lineTo(cx - r * 0.09, ey + r * 0.09); g.stroke(); }
+  } else { // 심술 난 눈과 눈썹
+    const lx = clamp(m.vx / 200, -1, 1) * r * 0.05, ly = clamp(m.vy / 200, -1, 1) * r * 0.05;
+    for (const s of [-1, 1]) { g.fillStyle = '#ffffff'; g.beginPath(); g.arc(s * ex, ey, r * 0.17, 0, Math.PI * 2); g.fill(); g.fillStyle = ink; g.beginPath(); g.arc(s * ex + lx, ey + ly + r * 0.02, r * 0.085, 0, Math.PI * 2); g.fill(); }
+    g.strokeStyle = ink; g.lineWidth = r * 0.08; g.lineCap = 'round';
+    for (const s of [-1, 1]) { g.beginPath(); g.moveTo(s * r * 0.46, ey - r * 0.3); g.lineTo(s * r * 0.14, ey - r * 0.2); g.stroke(); }
+    g.beginPath(); g.arc(0, r * 0.36, r * 0.12, 1.15 * Math.PI, 1.85 * Math.PI); g.stroke();
+  }
+  g.restore();
+}
+// 이 기기 순위표 (서버 없이 브라우저에만 저장)
+const BOARD_KEY = 'pm-season-dust-board';
+function boardGet() { try { const b = JSON.parse(localStorage.getItem(BOARD_KEY) || '[]'); return Array.isArray(b) ? b.filter((e) => e && Number.isFinite(e.s) && typeof e.n === 'string').slice(0, 50) : []; } catch (e) { return []; } }
+function boardAdd(n, s) { if (s <= 0) return { rank: 0, t: 0 }; const b = boardGet(), d = new Date(), e = { n, s, d: `${d.getMonth() + 1}/${d.getDate()}`, t: Date.now() }; b.push(e); b.sort((x, y) => y.s - x.s || x.t - y.t); const top = b.slice(0, 50); try { localStorage.setItem(BOARD_KEY, JSON.stringify(top)); } catch (err) { /* ignore */ } return { rank: top.indexOf(e) + 1, t: e.t }; }
+function finishDust() {
+  const s = dust.score, best = state.dustBest || 0, isBest = s > best; if (isBest) state.dustBest = s; state.pops += dust.popped; save();
+  dust.on = false; dust.phase = 'off'; dgEl.hidden = true;
+  const r = boardAdd((state.name || '지킴이').slice(0, 8), s), rows = boardGet().slice(0, 10);
+  if (s >= DUST_CLEAR) confetti(); if (isBest && s > 0) SFX.fanfare(); else SFX.ok(); refreshHud();
+  openModal(`<div class="res"><div class="res-k">🧹 먼지몬 막기</div><h2>${s.toLocaleString()}점!</h2>
+    <p style="margin:6px 0 10px;font-weight:700">먼지몬 ${dust.popped}마리 · 최고 콤보 ${dust.maxCombo}${isBest && s > 0 ? ' · <b>내 최고 기록!</b>' : best ? ` · 내 최고 ${best.toLocaleString()}점` : ''}${s >= DUST_CLEAR ? '<br>하늘이 완전히 맑아졌어요!' : ''}${r.rank ? `<br>이 기기 순위 <b>${r.rank}위</b>` : ''}</p>
+    ${rows.length ? `<ol class="lb">${rows.map((e) => `<li class="${e.t === r.t ? 'me' : ''}"><span>${esc(e.n)}</span><span class="d">${esc(e.d)}</span><span class="s">${e.s.toLocaleString()}점</span></li>`).join('')}</ol>` : ''}
+    <div class="row" style="justify-content:center;margin-top:12px"><button class="btn" id="dgClose">닫기</button><button class="btn primary" id="dgAgain">한 번 더</button></div></div>`, { close: false });
+  $('#dgClose').onclick = () => { SFX.click(); closeModal(); }; $('#dgAgain').onclick = () => { SFX.click(); closeModal(); startDust(); };
+}
+
 /* 2D 미니게임(hq/)·오락기 슈팅(arcade/)을 마을 안에서 바로 열기: 화면 위에 겹쳐 띄우고, 끝나면 결과를 받아 옴 */
 let frameOn = null;
 function openFrame(url, info) { if (frameOn) return; const f = document.createElement('iframe'); f.src = url; f.title = '미니게임'; f.allow = 'autoplay; fullscreen'; f.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9999;background:#12142b'; document.body.appendChild(f); frameOn = Object.assign({ f }, info); SFX.whoosh(); setTimeout(() => f.focus(), 300); }
@@ -1480,7 +1641,7 @@ function openGo() { // 어디로 갈지 고르면 알아서 걸어감
   const rows = [
     ...[3, 0, 1, 2].map((k) => SPOTS[k]).map((s) => [`${M_ICON[s.e]} ${s.name}`, st(s.e), s]),
     ['🔥 마을 배출원 줄이기', state.done[3] ? st(3) : `${solved}/5 해결`, nearestSrc() || SRC[0]],
-    ['🕹️ 먼지몬 막기 오락기', arcBest() ? `최고 ${arcBest().toLocaleString()}점` : '몰려오는 먼지몬 막기', ARCADE],
+    ['🕹️ 먼지몬 막기 오락기', state.dustBest ? `최고 ${state.dustBest.toLocaleString()}점` : '몰려오는 먼지몬 막기', ARCADE],
     ['☁️ 하늘멍 자리', '누워서 쉬기', SKYSPOT],
     ['🪑 마을멍 벤치', '앉아서 쉬기', BENCH],
     ['🦆 물멍 연못', '물가에서 쉬기', PONDSPOT],
@@ -1646,7 +1807,7 @@ const BADGES = [
   ['stars', '⭐', '별 열다섯 개', '모든 체험에서 별 셋', () => starTotal() === N_EXP * 3],
   ['orbs', '💎', '구슬 수집가', '하늘 구슬을 모두 모았어요', () => state.orbs.length >= ORBS.length],
   ['hunter', '🧹', '먼지 사냥꾼', '먼지몬 15마리를 쫓아냈어요', () => state.pops >= 15],
-  ['arcade', '🕹️', '오락기 고수', '먼지몬 막기 5,000점', () => arcBest() >= 5000 || state.best >= 300],
+  ['arcade', '🕹️', '오락기 고수', '먼지몬 막기 500점', () => (state.dustBest || 0) >= 500 || arcBest() >= 5000 || state.best >= 300],
   ['note', '📒', '공부벌레', '수첩을 처음부터 끝까지 읽었어요', () => state.read.length >= NOTES.length],
   ['style', '👕', '멋쟁이', '캐릭터를 꾸몄어요', () => !!state.styled],
   ['meong', '☁️', '멍 한 스푼', '하늘멍·마을멍·물멍으로 1분 쉬었어요', () => (state.meong || 0) >= 60],
@@ -1683,7 +1844,7 @@ function openCustomizer() {
    쉬어 가기 — 하늘멍(돗자리에 누워 하늘 보기) · 마을멍(벤치에 앉아 마을 보기)
    체험을 마칠수록 하늘이 맑아져서, 누워서 보는 하늘도 달라져요
    ========================================================= */
-const ARCADE = { x: -4.2, z: 9.4, stop: 1.6, tag: [-4.2, 9.4, 3], act: () => talk('오락기', ['<b>먼지몬이 몰려온다!</b> 구름을 타고 물방울을 쏴서 마을을 지켜 볼까? 다른 게임도 있어.'], [{ label: '5등급 스캐너', onClick: () => playHq('road', -1) }, { label: '굴뚝 공단', onClick: () => playHq('plant', -1) }, { label: '먼지몬 막기!', primary: true, onClick: () => openFrame('arcade/', { id: 'arcade', e: -1 }) }]) };
+const ARCADE = { x: -4.2, z: 9.4, stop: 1.6, tag: [-4.2, 9.4, 3], act: () => talk('오락기', ['<b>먼지몬이 몰려온다!</b> 30초 동안 톡톡 눌러서 하늘을 맑게 해 볼까? 하얀 구름 친구는 누르면 안 돼! 다른 게임도 있어.'], [{ label: '5등급 스캐너', onClick: () => playHq('road', -1) }, { label: '굴뚝 공단', onClick: () => playHq('plant', -1) }, { label: '슈팅 오락', onClick: () => openFrame('arcade/', { id: 'arcade', e: -1 }) }, { label: '먼지몬 막기!', primary: true, onClick: startDust }]) };
 const SKYSPOT = { x: -26.5, z: 15, stop: 0.6, tag: [-26.5, 15, 2.2], act: () => startMeong('sky') };
 const BENCH = { x: 5.6, z: 8.2, rot: -0.6, stop: 1.5, tag: [5.6, 8.2, 2], act: () => startMeong('town') };
 flat(3.4, 2.3, '#f2a7c3', SKYSPOT.x, SKYSPOT.z, 0.03); for (let i = 0; i < 4; i++) flat(0.42, 2.3, '#ffffff', SKYSPOT.x - 1.26 + i * 0.84, SKYSPOT.z, 0.035);
@@ -2487,7 +2648,7 @@ function updateNear() {
   if (best !== near || lab !== nearLab) { near = best; nearLab = lab; const b = $('#act'); b.hidden = !best; if (best) b.innerHTML = `<kbd>E</kbd>${lab}`; }
 }
 function update(dt) {
-  T += dt;
+  T += dt; if (dust.on) updateDust(dt);
   updatePlayer(dt); updateMeong(dt); updateMascots(dt, T); for (const n of npcs) animPerson(n, 0, dt);
   for (const c of cars) { c.x += c.dir * c.sp * dt; if (c.x > 62) c.x = -62; else if (c.x < -62) c.x = 62; c.g.position.set(c.x, 0, c.z); c.g.rotation.y = c.dir > 0 ? 0 : Math.PI; }
   if (sweeper.g.visible) { sweeper.x -= 7 * dt; sweeper.g.position.set(sweeper.x, 0, -13.4); if (sweeper.x < -60) sweeper.g.visible = false; }
@@ -2536,7 +2697,7 @@ let last = performance.now();
 function frame(ts) { const dt = Math.min(0.05, Math.max(0, (ts - last) / 1000)); last = ts; if (!frameOn) { update(dt); renderFrame(); } requestAnimationFrame(frame); } // 겹쳐 띄운 게임을 하는 동안은 마을을 멈춤
 requestAnimationFrame(frame);
 window.__worldReady = true;
-if (location.hash === '#debug') window.__g = { get state() { return state; }, player, inters, SPOTS, SRC, step: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) update(dt); renderFrame(); }, go: goTo, openGo, startMeong, stopMeong, meong, missionDone, playM1, playM2, playM3, showReport, refreshHud, playArcade, openBadges, openCustomizer, mons, orbs, mascots, enf, cine, FX, gfx, takePhoto, openSettings, clearCine, enfJudge, setMood, camera, run, playLab, playM3, runStop, runHit };
+if (location.hash === '#debug') window.__g = { get state() { return state; }, player, inters, SPOTS, SRC, step: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) update(dt); renderFrame(); }, go: goTo, openGo, startMeong, stopMeong, meong, startDust, dust, missionDone, playM1, playM2, playM3, showReport, refreshHud, playArcade, openBadges, openCustomizer, mons, orbs, mascots, enf, cine, FX, gfx, takePhoto, openSettings, clearCine, enfJudge, setMood, camera, run, playLab, playM3, runStop, runHit };
 </script>
 </body>
 </html>
