@@ -450,6 +450,9 @@ kbd{display:inline-block;min-width:1.5em;padding:1px 5px;border-radius:5px;borde
   .gauge{width:150px}.g-face{font-size:22px}.g-num{font-size:26px}.g-unit{font-size:9px}.tools{max-width:150px}.icon-btn{height:36px;min-width:36px}#mini{width:150px;height:99px}
   .sg-num{font-size:64px}.scope{height:230px}.tile b{font-size:26px}
 }
+/* 인증샷 이벤트 안내 */
+.ev-box{display:grid;gap:6px;margin:10px 0;padding:12px 14px;border:2.5px solid #12142b;border-radius:14px;background:#fff3c4;text-align:left;font-size:13.5px;line-height:1.5}
+.ev-box b{font-size:15px}.ev-box .btn{justify-self:start;text-decoration:none}
 /* 먼지몬 막기 (마을 화면 위에 겹쳐서 하는 30초 게임) */
 #dustGame{position:fixed;inset:0;z-index:30;touch-action:none;-webkit-user-select:none;user-select:none}
 #dustCv{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
@@ -590,6 +593,20 @@ import * as THREE from 'three';
 /* =========================================================
    설정 — 숫자가 바뀌면 여기와 아래 '지킴이 수첩' 글만 고치면 돼요
    ========================================================= */
+/* ---------------------------------------------------------
+   인증샷 이벤트 설정 — '미션 완료 인증샷' 이벤트를 열 때 여기만 고치면 돼요.
+   이 게임은 인증샷 사진만 만들고 어디로도 보내지 않아요. 참여·경품·개인정보 동의는 공식 창구(url)에서 받아요.
+   주소 끝에 ?event 를 붙이면 on 이 false 여도 이벤트 안내를 미리 볼 수 있어요.
+   --------------------------------------------------------- */
+const EVENT = {
+  on: false,                          // true: 포토존·결과 화면에서 이벤트를 안내함
+  name: '푸른하늘 지킴이 인증샷 이벤트',  // 이벤트 이름
+  url: '',                            // 참여하는 곳 주소 (SNS 이벤트 글, 공식 신청서 등). 비우면 해시태그 안내만
+  tag: '#푸른하늘지킴이',               // SNS에 올릴 때 붙일 해시태그
+  until: '',                          // 마감 안내 (예: '2026년 12월 31일까지'), 비우면 안 보임
+  need: 3,                            // 인증샷 조건: 마쳐야 하는 체험 수 (1~5)
+};
+if (new URLSearchParams(location.search).has('event')) EVENT.on = true;
 const ORG = '';            // 인증서 아래에 넣을 기관 이름 (비우면 넣지 않음)
 const F = { start: 33, goal: 19, spike: 82, round: '제7차(’25.12~’26.3)' }; // 시작 농도(제도 도입 초기), 목표, 고농도 날 예시 농도
 const KEY = 'pm-season-v1';
@@ -1369,6 +1386,7 @@ function missionDone(i, stars, sub, learn) {
   const first = !state.done[i], before = Math.round(pmNow());
   state.stars[i] = Math.max(state.stars[i], stars); state.done[i] = 1; save();
   const after = Math.round(pmNow()), all = doneN() === N_EXP;
+  if (first && doneN() === EVENT.need) setTimeout(() => toast(`🎉 미션 ${EVENT.need}개 완료! 광장 남쪽 <b>📸 인증샷 포토존</b>에서 미션 완료 인증샷을 찍을 수 있어요`, 6000), 4200);
   openModal(`<div class="res"><div class="res-k">${M_ICON[i]} 체험 ${first ? '완료' : '다시 도전'}</div><h2>${['운행제한 단속 요원', '비상저감조치 상황실', '심부름 대작전', '마을 배출원 줄이기', '미세먼지 연구소'][i]}</h2>
     <div class="res-stars">${[0, 1, 2].map((k) => `<span data-s="${k}">★</span>`).join('')}</div><div style="font-size:13px;color:var(--muted);font-weight:700">${sub}</div>
     <div class="res-pm">우리 마을 초미세먼지 <b>${before}</b> → <b class="down">${after}</b> ㎍/㎥</div>
@@ -1482,7 +1500,7 @@ const TIPS = [
   '계절관리제는 <b>매년 12월 1일부터 이듬해 3월 31일까지</b>야.',
   '오른쪽 위 <b>📒 수첩</b>에 지금까지 배운 내용이 다 들어 있어.',
 ];
-mascots.forEach((m) => addI({ pos: m.pos, r: 2, stop: 1.7, tapOnly: true, label: () => `${m.name}와 이야기`, act: () => { m.jump = 1; const nx = nextTask(); if (!nx) return talk(m.name, [pick(TIPS)], [{ label: '성적표 보기', onClick: showReport }, { label: '고마워', primary: true }]); talk(m.name, [`다음엔 <b>${M_ICON[nx.e]} ${nx.name}</b>에 가 보자! 내가 데려다줄까?`], [{ label: '한마디만 해 줘', onClick: () => talk(m.name, [pick(TIPS)]) }, { label: '데려다줘', primary: true, onClick: () => goTo(nx.t) }]); } }));
+mascots.forEach((m) => addI({ pos: m.pos, r: 2, stop: 1.7, tapOnly: true, label: () => `${m.name}와 이야기`, act: () => { m.jump = 1; if (certOk() && !state.certShot) return talk(m.name, [`체험을 <b>${doneN()}가지</b>나 마쳤어! 광장 남쪽 <b>📸 인증샷 포토존</b>에서 <b>미션 완료 인증샷</b>을 찍자!${EVENT.on ? ` 인증샷으로 <b>${esc(EVENT.name)}</b>에 참여할 수 있대!` : ''}`], [{ label: '나중에' }, { label: '데려다줘', primary: true, onClick: () => goTo(PZSPOT) }]); const nx = nextTask(); if (!nx) return talk(m.name, [pick(TIPS)], [{ label: '성적표 보기', onClick: showReport }, { label: '고마워', primary: true }]); talk(m.name, [`다음엔 <b>${M_ICON[nx.e]} ${nx.name}</b>에 가 보자! 내가 데려다줄까?`], [{ label: '한마디만 해 줘', onClick: () => talk(m.name, [pick(TIPS)]) }, { label: '데려다줘', primary: true, onClick: () => goTo(nx.t) }]); } }));
 
 const mkAuto = (x, z, stop, cb) => ({ x, z, stop, cb, best: 1e9, stuck: 0 });
 let goDest = null; // 바로 가기로 고른 곳 (노란 화살표가 가리킴)
@@ -1644,6 +1662,7 @@ function openGo() { // 어디로 갈지 고르면 알아서 걸어감
     ['🕹️ 먼지몬 막기 오락기', state.dustBest ? `최고 ${state.dustBest.toLocaleString()}점` : '몰려오는 먼지몬 막기', ARCADE],
     ['☁️ 하늘멍 자리', '누워서 쉬기', SKYSPOT],
     ['🪑 마을멍 벤치', '앉아서 쉬기', BENCH],
+    ['📸 인증샷 포토존', certOk() ? (state.certShot ? '인증샷 다시 찍기' : '미션 완료 인증샷!') : `체험 ${doneN()}/${EVENT.need} · 기념사진`, PZSPOT],
     ['🦆 물멍 연못', '물가에서 쉬기', PONDSPOT],
   ];
   openModal(`<div class="q-head"><b>📍 어디로 갈까요?</b></div><div class="golist">${rows.map(([nm, s2], k) => `<button class="gorow" data-k="${k}"><span>${nm}</span><small>${s2}</small></button>`).join('')}</div>`);
@@ -1658,10 +1677,12 @@ function refreshHud() {
   $('#mChip').textContent = `${doneN()}/${N_EXP}`;
   $('#months').innerHTML = EXP_ORDER.map((i) => `<span class="${state.done[i] ? 'on' : ''}" title="${EXP[i]}">${M_ICON[i]}<small>${state.done[i] ? '★'.repeat(state.stars[i]) : EXP[i]}</small></span>`).join('');
   $('#objText').innerHTML = !state.intro ? '뭉게의 이야기를 들어 보세요'
+    : certOk() && !state.certShot ? `미션 ${doneN()}개 완료! · <b>📸 인증샷 포토존</b>에서 인증샷을 찍어요<br><small>길동무에게 말을 걸면 데려다줘요</small>`
     : doneN() === N_EXP ? '다섯 가지 체험 완료! 다시 도전해 별을 모으거나 구슬·먼지몬·하늘멍을 즐겨 보세요'
     : (() => { const nx = nextTask(); return `다음 할 일 · <b>${M_ICON[nx.e]} ${nx.name}</b>${nx.e === 3 ? ` (${solved}/5)` : ''}<br><small>길동무에게 말을 걸면 데려다줘요</small>`; })();
   $('#alert').hidden = true; $('#go').hidden = !state.intro;
   SPOTS.forEach((s, i) => { s.L.el.innerHTML = `${state.done[s.e] ? '<span class="bang chk">✓</span>' : state.intro ? '<span class="bang">!</span>' : ''}${M_ICON[s.e]} ${s.name}`; });
+  if (typeof pzSync === 'function') pzSync();
   SRC.forEach((s) => { s.L.el.innerHTML = `${state.src[s.k] ? '<span class="bang chk">✓</span>' : '<span class="bang">!</span>'}${s.ico} ${s.name}`; });
   oldTruckSmoke.on = !state.done[0]; drawBoard();
 }
@@ -2226,7 +2247,7 @@ for (let i = 0; i < 22; i++) { const w = rand(5, 9), h = rand(7, 20), m = new TH
 /* ---------- 가로등과 밤 불빛 ---------- */
 const lampMat = new THREE.MeshLambertMaterial({ color: '#fff2c2', emissive: '#ffd27a', emissiveIntensity: 0 }), lampSprite = glowMat('#ffd27a', 0);
 const poolMat = new THREE.MeshBasicMaterial({ map: glowTex, color: '#ffc46a', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }), POOL_GEO = new THREE.PlaneGeometry(9, 9);
-for (const [x, z] of [[8.9, 2.4], [-8.9, 3.6], [2.6, 11.8], [-2.4, -1.6], [13.5, 1.9], [-10.4, 12.2], [-13.6, -0.6], [-23.4, 13.2], [-15.2, 20.4], [2.4, -10.3], [-20.5, -10.3], [30.5, -10.3], [8.6, 15.9], [20.6, 11.6]]) {
+for (const [x, z] of [[8.9, 2.4], [-8.9, 3.6], [2.6, 11.8], [-2.4, -1.6], [13.5, 1.9], [-10.4, 12.2], [-13.6, -0.6], [-23.4, 13.2], [-15.2, 20.4], [2.4, -10.3], [-20.5, -10.3], [30.5, -10.3], [13.2, 16.2], [20.6, 11.6]]) {
   cyl(0.07, 0.1, 3.3, '#3d4a52', x, 1.65, z, null, 8); box(0.5, 0.1, 0.5, '#3d4a52', x, 3.42, z);
   const b = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), lampMat); b.position.set(x, 3.22, z); scene.add(b);
   glow(null, x, 3.2, z, 0, 3.6, 0, lampSprite);
@@ -2288,7 +2309,7 @@ function updateCine(dt) {
 }
 
 /* ---------- 미니맵 ---------- */
-const mini = $('#mini'), miniG = mini.getContext('2d'), MINI_B = [[18, -5.8, 9, 7, '#4a6fa5'], [28, 4, 7, 5.5, '#3fae98'], [-18, 9, 6, 5, '#d9695a'], [-19, -7.2, 6, 4.4, '#c9836a'], [-10.6, -11, 2.4, 1.5, '#2f4b6e'], [-4.2, 9.4, 1.4, 1.1, '#3d405b']]; let miniT = 0;
+const mini = $('#mini'), miniG = mini.getContext('2d'), MINI_B = [[18, -5.8, 9, 7, '#4a6fa5'], [28, 4, 7, 5.5, '#3fae98'], [-18, 9, 6, 5, '#d9695a'], [-19, -7.2, 6, 4.4, '#c9836a'], [-10.6, -11, 2.4, 1.5, '#2f4b6e'], [-4.2, 9.4, 1.4, 1.1, '#3d405b'], [7.5, 10.6, 5.5, 0.6, '#ffd23f']]; let miniT = 0;
 function drawMini() {
   const g = miniG, W = mini.width, S = W / 76, X = (x) => (x + 38) * S, Z = (z) => (z + 22) * S, dot = (x, z, r, c, line) => { g.beginPath(); g.arc(X(x), Z(z), r, 0, 7); g.fillStyle = c; g.fill(); if (line) { g.lineWidth = 2; g.strokeStyle = line; g.stroke(); } };
   g.fillStyle = '#a6d18f'; g.fillRect(0, 0, W, mini.height);
@@ -2328,6 +2349,114 @@ function takePhoto() {
   $('#phOk').onclick = () => { SFX.click(); closeModal(); };
   $('#phSave').onclick = () => cv.toBlob((b) => { const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = '푸른하늘지킴이_기념사진.jpg'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }, 'image/jpeg', 0.92);
   $('#phShare').onclick = () => cv.toBlob(async (b) => { const file = new File([b], 'photo.jpg', { type: 'image/jpeg' }), text = `푸른하늘 지킴이! ${line}`; try { if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], text }); else if (navigator.share) await navigator.share({ text, url: location.href }); else { await navigator.clipboard.writeText(`${text} ${location.href}`); toast('공유 문구를 복사했어요'); } } catch (e) { /* 취소 */ } }, 'image/jpeg', 0.92);
+}
+
+/* =========================================================
+   인증샷 포토존 — 광장 남쪽. 체험을 EVENT.need 개 마치면 '미션 완료 인증샷'(도장·인증번호·마친 체험)을,
+   그 전에는 기념사진을 찍음. 사진은 이 기기 안에서만 만들고 어디로도 보내지 않음.
+   ========================================================= */
+const PZ = { x: 7.5, z: 10.6 };            // 배경판 가운데 (앞면이 +z, 카메라 쪽)
+const certOk = () => doneN() >= EVENT.need;
+const pzCv = document.createElement('canvas'); pzCv.width = 1024; pzCv.height = 640;
+const pzTex = new THREE.CanvasTexture(pzCv); pzTex.colorSpace = THREE.SRGBColorSpace;
+function drawPzBoard() { // 배경판 그림: 맑은 하늘, 구름, 해, 큰 글씨
+  const g = pzCv.getContext('2d'), W = 1024, H = 640, D = "'Black Han Sans','Noto Sans KR',sans-serif";
+  const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#2f9bff'); gr.addColorStop(0.7, '#8fd3ff'); gr.addColorStop(1, '#e6f8ff'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  g.save(); g.translate(820, 130); g.fillStyle = 'rgba(255,255,255,.18)'; for (let i = 0; i < 12; i++) { g.rotate(Math.PI / 6); g.beginPath(); g.moveTo(0, 0); g.lineTo(700, -70); g.lineTo(700, 70); g.closePath(); g.fill(); } g.restore();
+  g.fillStyle = '#ffe680'; g.beginPath(); g.arc(820, 130, 70, 0, 7); g.fill();
+  const cloud = (x, y, s) => { g.fillStyle = '#ffffff'; for (const [dx, dy, r] of [[0, 0, 46], [-50, 14, 34], [52, 12, 36], [-22, -24, 34], [26, -26, 32]]) { g.beginPath(); g.arc(x + dx * s, y + dy * s, r * s, 0, 7); g.fill(); } };
+  cloud(150, 120, 1.1); cloud(560, 90, 0.8); cloud(120, 470, 0.9); cloud(920, 500, 1.2);
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+  g.font = `400 54px ${D}`; g.lineWidth = 12; g.strokeStyle = '#12142b'; g.strokeText('미세먼지 계절관리제', 512, 230); g.fillStyle = '#ffd23f'; g.fillText('미세먼지 계절관리제', 512, 230);
+  g.font = `400 120px ${D}`; g.lineWidth = 20; g.strokeText('푸른하늘 지킴이', 512, 340); g.fillStyle = '#ffffff'; g.fillText('푸른하늘 지킴이', 512, 340);
+  g.fillStyle = '#12142b'; rr(g, 332, 420, 360, 70, 35); g.fill(); g.fillStyle = '#ffd23f'; g.font = `400 40px ${D}`; g.fillText('📸 인증샷 포토존', 512, 457);
+  g.lineWidth = 14; g.strokeStyle = '#12142b'; g.strokeRect(7, 7, W - 14, H - 14); pzTex.needsUpdate = true;
+}
+drawPzBoard(); if (document.fonts) document.fonts.ready.then(drawPzBoard);
+{ // 배경판 · 기둥 · 바닥 발자국 · 삼각대 카메라
+  const pg = new THREE.Group(); pg.position.set(PZ.x, 0, PZ.z); scene.add(pg);
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 3.25), new THREE.MeshBasicMaterial({ map: pzTex })); board.position.set(0, 2.0, 0.08); pg.add(board);
+  box(5.5, 3.5, 0.14, '#12142b', 0, 2.0, 0, pg); for (const s of [-1, 1]) { cyl(0.13, 0.15, 3.8, '#ffd23f', s * 2.78, 1.9, 0, pg, 10); sph(0.22, '#ff5a5f', s * 2.78, 3.9, 0, pg); }
+  const st = new THREE.Mesh(new THREE.CircleGeometry(1.7, 40), mat('#ffd23f')); st.rotation.x = -Math.PI / 2; st.position.set(0, 0.03, 1.4); st.receiveShadow = true; pg.add(st);
+  const st2 = new THREE.Mesh(new THREE.RingGeometry(1.55, 1.7, 40), mat('#12142b')); st2.rotation.x = -Math.PI / 2; st2.position.set(0, 0.035, 1.4); pg.add(st2);
+  for (const s of [-1, 1]) { const f = new THREE.Mesh(new THREE.CircleGeometry(0.17, 16), mat('#ffffff')); f.scale.set(0.75, 1.25, 1); f.rotation.x = -Math.PI / 2; f.position.set(s * 0.22, 0.04, 1.45); pg.add(f); }
+  const tri = new THREE.Group(); tri.position.set(-3.6, 0, 4.2); tri.rotation.y = 0.55; pg.add(tri); // 삼각대 카메라
+  for (let i = 0; i < 3; i++) { const a = (i / 3) * Math.PI * 2, l = cyl(0.03, 0.03, 1.35, '#3d4466', Math.sin(a) * 0.28, 0.62, Math.cos(a) * 0.28, tri, 6); l.rotation.set(Math.cos(a) * 0.4, 0, -Math.sin(a) * 0.4); }
+  box(0.55, 0.36, 0.3, '#12142b', 0, 1.42, 0, tri); cyl(0.12, 0.12, 0.18, '#7fe9ff', 0, 1.42, -0.2, tri, 14).rotation.x = Math.PI / 2; box(0.14, 0.08, 0.1, '#ff5a5f', 0.16, 1.64, 0.02, tri);
+  col(PZ.x, PZ.z, 0.4); for (const x of [-2.2, -1.1, 0, 1.1, 2.2]) col(PZ.x + x, PZ.z, 0.55); col(PZ.x - 3.6 * Math.cos(0.55) + 0, PZ.z + 4.2, 0.45);
+}
+const PZSPOT = { x: PZ.x, z: PZ.z + 1.4, stop: 0.4, act: () => openPhotoZone() };
+const pzTag = addTag('', { x: PZ.x, y: 0, z: PZ.z }, 4.4);
+addI({ pos: { x: PZSPOT.x, z: PZSPOT.z }, r: 2.4, stop: 0.4, label: () => (certOk() ? '미션 완료 인증샷 찍기' : '포토존에서 사진 찍기'), act: () => openPhotoZone() });
+function pzSync() { pzTag.el.innerHTML = `${certOk() && !state.certShot ? '<span class="bang">!</span>' : state.certShot ? '<span class="bang chk">✓</span>' : ''}📸 인증샷 포토존`; }
+
+function openPhotoZone() {
+  if (busy() && !dlg) return;
+  const n = doneN(), need = EVENT.need, ev = EVENT.on ? ` 인증샷으로 <b>${esc(EVENT.name)}</b>에 참여할 수 있어요.` : '';
+  if (!certOk()) return talk('포토존', [`여기는 <b>인증샷 포토존</b>이에요! 체험을 <b>${need}가지</b> 마치면 <b>미션 완료 인증샷</b>(도장·인증번호)을 찍을 수 있어요. 지금 <b>${n}/${need}</b>.${ev}`, '지금은 기념사진을 찍을 수 있어요.'], [{ label: '나중에' }, { label: '기념사진 찍기', primary: true, onClick: () => setTimeout(() => shootZone(false), 120) }]);
+  const ask = () => openModal(`<div class="q-head"><b>📸 미션 완료 인증샷</b></div><p class="q-lead" style="margin:10px 0">사진에 들어갈 이름을 적어 주세요. (8자까지)</p><label class="field"><span>이름</span><input id="pzName" maxlength="8" placeholder="지킴이" autocomplete="off"></label><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="pzNo">취소</button><button class="btn primary" id="pzGo">찰칵!</button></div>`);
+  talk('포토존', [`체험 <b>${n}가지</b>를 마쳤네요! 축하해요, <b>${esc(state.name || '지킴이')}</b>! 뭉게·방울이와 함께 <b>미션 완료 인증샷</b>을 찍어요.${ev}`], [{ label: '나중에' }, { label: '인증샷 찍기', primary: true, onClick: () => setTimeout(() => { if (state.name) return shootZone(true); ask(); $('#pzName').focus(); $('#pzNo').onclick = () => { SFX.click(); closeModal(); }; $('#pzGo').onclick = () => { const v = $('#pzName').value.trim().slice(0, 8); state.name = v || '지킴이'; save(); buildPlayer(); closeModal(); setTimeout(() => shootZone(true), 150); }; }, 120) }]);
+}
+let pzUrl = '', pzKind = 'visit';
+function shootZone(cert) {
+  if (busy() || !player.P) return;
+  const W = 1080, H = 1350, PH = 1010, R = player.P, sx = PZ.x, sz = PZ.z + 1.45;
+  // 자리 잡기: 가운데 나, 양옆 뭉게·방울이. 모두 카메라를 봄
+  player.pos.set(sx, 0, sz); player.heading = 0; R.root.position.copy(player.pos); R.root.rotation.set(0, 0, 0); R.body.rotation.set(0, 0, 0); R.body.position.y = 0; R.body.scale.set(1, 1, 1); R.head.rotation.set(0, 0, 0);
+  R.legL.rotation.x = R.legR.rotation.x = 0; R.armL.rotation.set(-2.85, 0, -0.75); R.armR.rotation.set(-2.85, 0, 0.75); // 두 손 번쩍, 얼굴을 가리지 않게 벌려서 (미션 완료!)
+  if (!cert) R.armL.rotation.set(0, 0, -0.2);
+  mascots.forEach((m, i) => { m.pos.set(sx + (i ? 1.25 : -1.25), 0.35, sz + 0.15); m.heading = m.root.rotation.y = i ? -0.25 : 0.25; m.moving = false; m.jump = 0; m.arms.forEach((a, k) => (a.rotation.z = (k ? 1 : -1) * 2.3)); });
+  const cam = new THREE.PerspectiveCamera(34, W / PH, 0.3, 500); cam.position.set(sx, 1.75, sz + 7.4); cam.lookAt(sx, 1.55, PZ.z);
+  const pr = renderer.getPixelRatio(), mk = marker.visible, hid = [...orbs, ...mons].map((o) => o.g).filter((g) => g.visible); marker.visible = false; tapRing.visible = false; hid.forEach((g) => (g.visible = false));
+  renderer.setPixelRatio(1); renderer.setSize(W, PH, false); const fb = FX.ok ? [FX.mat.uniforms.uBlur.value, FX.mat.uniforms.uFocus.value] : null; if (FX.ok) { FX.mat.uniforms.uBlur.value = 0.25; FX.mat.uniforms.uFocus.value = 0.5; }
+  renderFrame(cam);
+  const out = document.createElement('canvas'); out.width = W; out.height = H; const g = out.getContext('2d'); g.drawImage(canvas, 0, 0, W, PH);
+  renderer.setPixelRatio(pr); renderer.setSize(innerWidth, innerHeight, false); if (fb) { FX.mat.uniforms.uBlur.value = fb[0]; FX.mat.uniforms.uFocus.value = fb[1]; } marker.visible = mk; tapRing.visible = true; hid.forEach((o) => (o.visible = true)); renderFrame();
+  // 액자: 잉크 테두리 + 아래 띠(제목·이름·마친 체험·날짜·인증번호). 인증샷이면 '미션 완료' 도장
+  const D = "'Black Han Sans','Noto Sans KR',sans-serif", d = new Date(), ds = `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`, me = state.name || '지킴이';
+  if (cert && !state.certNo) state.certNo = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  if (cert) state.certShot = (state.certShot || 0) + 1; state.photos = (state.photos || 0) + 1; save(); pzSync(); refreshHud();
+  pzKind = cert ? 'cert' : 'visit';
+  g.fillStyle = '#12142b'; g.fillRect(0, PH, W, H - PH); g.fillStyle = '#ffd23f'; g.fillRect(0, PH, W, 10);
+  if (cert) { // 사진 오른쪽 위 '미션 완료' 도장
+    g.save(); g.translate(905, 165); g.rotate(-0.21); g.globalAlpha = 0.94;
+    g.fillStyle = 'rgba(255,253,244,.78)'; g.beginPath(); g.arc(0, 0, 100, 0, 7); g.fill();
+    g.strokeStyle = '#e5484d'; g.lineWidth = 8; g.beginPath(); g.arc(0, 0, 104, 0, 7); g.stroke(); g.lineWidth = 3; g.beginPath(); g.arc(0, 0, 90, 0, 7); g.stroke();
+    g.fillStyle = '#e5484d'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `400 44px ${D}`; g.fillText('미션 완료', 0, -14); g.font = `900 22px ${FONT}`; g.fillText(`체험 ${doneN()}/${N_EXP}`, 0, 30);
+    g.restore();
+  }
+  g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  const fit = (text, font, size, min, maxW) => { let s = size; g.font = font(s); while (g.measureText(text).width > maxW && s > min) { s -= 2; g.font = font(s); } };
+  const title = cert ? '미세먼지 계절관리제 · 미션 완료 인증' : '푸른하늘 지킴이 · 포토존 기념사진';
+  fit(title, (s) => `400 ${s}px ${D}`, 50, 32, 960); g.fillStyle = '#ffffff'; g.fillText(title, 60, PH + 84);
+  const line = `${me} · ${titleNow()} · ${ds}`; fit(line, (s) => `900 ${s}px ${FONT}`, 34, 22, 960); g.fillStyle = '#ffd23f'; g.fillText(line, 60, PH + 140);
+  let x = 60; g.font = `800 25px ${FONT}`; // 마친 체험 꼬리표
+  EXP_ORDER.forEach((i) => { const on = !!state.done[i], t = `${M_ICON[i]} ${EXP[i]}${on ? ' ' + '★'.repeat(state.stars[i]) : ''}`, w = g.measureText(t).width + 28; g.fillStyle = on ? '#19d3a2' : 'rgba(255,255,255,.14)'; rr(g, x, PH + 166, w, 44, 22); g.fill(); g.fillStyle = on ? '#12142b' : 'rgba(255,255,255,.5)'; g.fillText(t, x + 14, PH + 197); x += w + 10; });
+  g.fillStyle = 'rgba(255,255,255,.72)'; g.font = `700 24px ${FONT}`; g.fillText(`${cert ? `인증번호 ${state.certNo} · ` : ''}pm-intro.vercel.app${ORG ? ' · ' + ORG : ''}`, 60, PH + 296);
+  g.lineWidth = 16; g.strokeStyle = '#12142b'; g.strokeRect(8, 8, W - 16, H - 16);
+  pzUrl = out.toDataURL('image/jpeg', 0.92);
+  flash(); SFX.shutter(); if (cert) { SFX.fanfare(); confetti(); }
+  setTimeout(() => {
+    const evUrl = /^https?:\/\//i.test(EVENT.url) ? EVENT.url : '';
+    const evBox = cert && EVENT.on ? `<div class="ev-box"><b>🎁 ${esc(EVENT.name)}</b><span>${evUrl ? '사진을 저장한 뒤 <b>이벤트 참여하기</b>에서 올려 주세요.' : `사진을 저장해 <b>${esc(EVENT.tag)}</b> 해시태그를 달아 SNS에 올려 주세요.`}${EVENT.until ? ` (${esc(EVENT.until)})` : ''}</span>${evUrl ? `<a class="btn primary" href="${esc(evUrl)}" target="_blank" rel="noopener">이벤트 참여하기 ↗</a>` : ''}<span class="fine">참여·경품·개인정보 동의는 위 공식 창구에서만 받아요. 이 게임은 사진을 어디로도 보내지 않아요.</span></div>` : '';
+    const hint = cert ? `<p class="fine">인증번호 <b>${esc(state.certNo)}</b> · 체험 ${doneN()}/${N_EXP}</p>` : `<p class="fine">체험을 <b>${EVENT.need}가지</b> 마치면 <b>미션 완료 인증샷</b>을 찍을 수 있어요 (지금 ${doneN()}/${EVENT.need})${EVENT.on ? `. 인증샷으로 <b>${esc(EVENT.name)}</b>에 참여할 수 있어요!` : '.'}</p>`;
+    openModal(`<div class="res"><div class="res-k">📸 ${cert ? '미션 완료 인증샷' : '포토존 기념사진'}</div><h2>찰칵! ${cert ? '인증샷이 나왔어요' : '기념사진이 나왔어요'}</h2>
+      <img id="certImg" alt="${cert ? '미션 완료 인증샷' : '포토존 기념사진'}" src="${pzUrl}">${evBox}${hint}
+      <p class="fine">사진은 이 기기 안에서만 만들어져요. 저장하거나 카톡·SNS로 공유해 보세요.</p>
+      <div class="row" style="justify-content:center"><button class="btn" id="pzX">닫기</button><button class="btn" id="pzSave">사진 저장</button><button class="btn primary" id="pzShare">공유하기</button></div></div>`, { close: false });
+    $('#pzX').onclick = () => { SFX.click(); closeModal(); }; $('#pzSave').onclick = savePz; $('#pzShare').onclick = sharePz;
+  }, 380);
+}
+const pzFile = () => `${pzKind === 'cert' ? '미션완료-인증샷' : '포토존-기념사진'}-${new Date().toISOString().slice(0, 10)}.jpg`;
+function savePz() { if (!pzUrl) return; const a = document.createElement('a'); a.href = pzUrl; a.download = pzFile(); document.body.appendChild(a); a.click(); a.remove(); toast('사진을 저장했어요.'); }
+async function sharePz() {
+  if (!pzUrl) return;
+  try {
+    const cert = pzKind === 'cert', blob = await (await fetch(pzUrl)).blob(), file = new File([blob], pzFile(), { type: 'image/jpeg' });
+    const text = cert ? `미세먼지 계절관리제 미션 완료! 푸른하늘 지킴이 인증샷 📸 ${EVENT.on ? EVENT.tag + ' ' : ''}https://pm-intro.vercel.app` : '푸른하늘 지킴이 포토존에서 찰칵! https://pm-intro.vercel.app';
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: '푸른하늘 지킴이', text }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  savePz(); toast('이 기기에서는 사진 공유가 안 돼서 저장했어요. 저장한 사진을 카톡·SNS에 올려 주세요.', 4200);
 }
 
 /* ---------- 설정 ---------- */
@@ -2697,7 +2826,7 @@ let last = performance.now();
 function frame(ts) { const dt = Math.min(0.05, Math.max(0, (ts - last) / 1000)); last = ts; if (!frameOn) { update(dt); renderFrame(); } requestAnimationFrame(frame); } // 겹쳐 띄운 게임을 하는 동안은 마을을 멈춤
 requestAnimationFrame(frame);
 window.__worldReady = true;
-if (location.hash === '#debug') window.__g = { get state() { return state; }, player, inters, SPOTS, SRC, step: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) update(dt); renderFrame(); }, go: goTo, openGo, startMeong, stopMeong, meong, startDust, dust, missionDone, playM1, playM2, playM3, showReport, refreshHud, playArcade, openBadges, openCustomizer, mons, orbs, mascots, enf, cine, FX, gfx, takePhoto, openSettings, clearCine, enfJudge, setMood, camera, run, playLab, playM3, runStop, runHit };
+if (location.hash === '#debug') window.__g = { get state() { return state; }, player, inters, SPOTS, SRC, step: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) update(dt); renderFrame(); }, go: goTo, openGo, startMeong, stopMeong, meong, startDust, dust, openPhotoZone, shootZone, PZSPOT, EVENT, missionDone, playM1, playM2, playM3, showReport, refreshHud, playArcade, openBadges, openCustomizer, mons, orbs, mascots, enf, cine, FX, gfx, takePhoto, openSettings, clearCine, enfJudge, setMood, camera, run, playLab, playM3, runStop, runHit };
 </script>
 </body>
 </html>
