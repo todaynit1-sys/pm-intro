@@ -2374,12 +2374,29 @@ const pzTag = addTag('', { x: PZ.x, y: 0, z: PZ.z }, 4.4);
 addI({ pos: { x: PZSPOT.x, z: PZSPOT.z }, r: 2.4, stop: 0.4, label: () => (certOk() ? '미션 완료 인증샷 찍기' : '포토존에서 사진 찍기'), act: () => openPhotoZone() });
 function pzSync() { pzTag.el.innerHTML = `${certOk() && !state.certShot ? '<span class="bang">!</span>' : state.certShot ? '<span class="bang chk">✓</span>' : ''}📸 인증샷 포토존`; }
 
+/* 인증샷 확인 코드 — 'ABCD-EFGH' 꼴. 앞 4자리는 이 기기에서 처음 인증샷을 찍을 때 정한 무작위 글자,
+   뒤 4자리는 앞 4자리·이름·찍은 날짜로 계산한 값이에요. 관리자 확인 페이지(check/)가 같은 계산으로 진짜인지 봐요.
+   ※ check/index.html 의 같은 부분과 글자 하나까지 똑같아야 해요. 바꾸면 이미 찍은 인증샷은 확인이 안 돼요. */
+const CC_ABC = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ', CC_SALT = 'pm-season|푸른하늘지킴이|cert-1';
+function ccHash(str) { // cyrb53 (53비트 해시)
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+}
+const ccName = (s) => String(s || '').normalize('NFC').replace(/\s+/g, '').toLowerCase();
+function ccSign(key, name, ymd) { let h = ccHash(`${CC_SALT}|${key}|${ccName(name)}|${ymd}`), t = ''; for (let i = 0; i < 4; i++) { t += CC_ABC[h % 32]; h = Math.floor(h / 32); } return t; }
+const ccKey = () => Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => CC_ABC[b % 32]).join('');
+const ccYmd = (d) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+const certCode = (key, name, d = new Date()) => `${key}-${ccSign(key, name, ccYmd(d))}`;
+
 function openPhotoZone() {
   if (busy() && !dlg) return;
-  const n = doneN(), need = CERT_NEED, ev = '';
-  if (!certOk()) return talk('포토존', [`여기는 <b>인증샷 포토존</b>이에요! 체험을 <b>${need}가지</b> 마치면 <b>미션 완료 인증샷</b>(도장·인증번호)을 찍을 수 있어요. 지금 <b>${n}/${need}</b>.${ev}`, '지금은 기념사진을 찍을 수 있어요.'], [{ label: '나중에' }, { label: '기념사진 찍기', primary: true, onClick: () => setTimeout(() => shootZone(false), 120) }]);
+  const n = doneN(), need = CERT_NEED;
+  if (!certOk()) return talk('포토존', [`여기는 <b>인증샷 포토존</b>이에요! 체험을 <b>${need}가지</b> 마치면 <b>미션 완료 인증샷</b>(도장·확인 코드)을 찍을 수 있어요. 지금 <b>${n}/${need}</b>.`, '지금은 기념사진을 찍을 수 있어요.'], [{ label: '나중에' }, { label: '기념사진 찍기', primary: true, onClick: () => setTimeout(() => shootZone(false), 120) }]);
   const ask = () => openModal(`<div class="q-head"><b>📸 미션 완료 인증샷</b></div><p class="q-lead" style="margin:10px 0">사진에 들어갈 이름을 적어 주세요. (8자까지)</p><label class="field"><span>이름</span><input id="pzName" maxlength="8" placeholder="지킴이" autocomplete="off"></label><div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" id="pzNo">취소</button><button class="btn primary" id="pzGo">찰칵!</button></div>`);
-  talk('포토존', [`체험 <b>${n}가지</b>를 마쳤네요! 축하해요, <b>${esc(state.name || '지킴이')}</b>! 뭉게·방울이와 함께 <b>미션 완료 인증샷</b>을 찍어요.${ev}`], [{ label: '나중에' }, { label: '인증샷 찍기', primary: true, onClick: () => setTimeout(() => { if (state.name) return shootZone(true); ask(); $('#pzName').focus(); $('#pzNo').onclick = () => { SFX.click(); closeModal(); }; $('#pzGo').onclick = () => { const v = $('#pzName').value.trim().slice(0, 8); state.name = v || '지킴이'; save(); buildPlayer(); closeModal(); setTimeout(() => shootZone(true), 150); }; }, 120) }]);
+  talk('포토존', [`체험 <b>${n}가지</b>를 마쳤네요! 축하해요, <b>${esc(state.name || '지킴이')}</b>! 뭉게·방울이와 함께 <b>미션 완료 인증샷</b>을 찍어요.`], [{ label: '나중에' }, { label: '인증샷 찍기', primary: true, onClick: () => setTimeout(() => { if (state.name) return shootZone(true); ask(); $('#pzName').focus(); $('#pzNo').onclick = () => { SFX.click(); closeModal(); }; $('#pzGo').onclick = () => { const v = $('#pzName').value.trim().slice(0, 8); state.name = v || '지킴이'; save(); buildPlayer(); closeModal(); setTimeout(() => shootZone(true), 150); }; }, 120) }]);
 }
 let pzUrl = '', pzKind = 'visit';
 function shootZone(cert) {
@@ -2396,9 +2413,11 @@ function shootZone(cert) {
   renderFrame(cam);
   const out = document.createElement('canvas'); out.width = W; out.height = H; const g = out.getContext('2d'); g.drawImage(canvas, 0, 0, W, PH);
   renderer.setPixelRatio(pr); renderer.setSize(innerWidth, innerHeight, false); if (fb) { FX.mat.uniforms.uBlur.value = fb[0]; FX.mat.uniforms.uFocus.value = fb[1]; } marker.visible = mk; tapRing.visible = true; hid.forEach((o) => (o.visible = true)); renderFrame();
-  // 액자: 잉크 테두리 + 아래 띠(제목·이름·마친 체험·날짜·인증번호). 인증샷이면 '미션 완료' 도장
+  // 액자: 잉크 테두리 + 아래 띠(제목·이름·날짜·마친 체험). 인증샷이면 '미션 완료' 도장과 확인 코드
   const D = "'Black Han Sans','Noto Sans KR',sans-serif", d = new Date(), ds = `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`, me = state.name || '지킴이';
-  if (cert) state.certShot = (state.certShot || 0) + 1; state.photos = (state.photos || 0) + 1; save(); pzSync(); refreshHud();
+  if (cert && !/^[2-9A-HJ-NP-Z]{4}$/.test(state.certKey || '')) state.certKey = ccKey();
+  const code = cert ? certCode(state.certKey, me, d) : '';
+  if (cert) { state.certShot = (state.certShot || 0) + 1; state.certCode = code; } state.photos = (state.photos || 0) + 1; save(); pzSync(); refreshHud();
   pzKind = cert ? 'cert' : 'visit';
   g.fillStyle = '#12142b'; g.fillRect(0, PH, W, H - PH); g.fillStyle = '#ffd23f'; g.fillRect(0, PH, W, 10);
   if (cert) { // 사진 오른쪽 위 '미션 완료' 도장
@@ -2415,12 +2434,17 @@ function shootZone(cert) {
   const line = `${me} · ${titleNow()} · ${ds}`; fit(line, (s) => `900 ${s}px ${FONT}`, 34, 22, 960); g.fillStyle = '#ffd23f'; g.fillText(line, 60, PH + 140);
   let x = 60; g.font = `800 25px ${FONT}`; // 마친 체험 꼬리표
   EXP_ORDER.forEach((i) => { const on = !!state.done[i], t = `${M_ICON[i]} ${EXP[i]}${on ? ' ' + '★'.repeat(state.stars[i]) : ''}`, w = g.measureText(t).width + 28; g.fillStyle = on ? '#19d3a2' : 'rgba(255,255,255,.14)'; rr(g, x, PH + 166, w, 44, 22); g.fill(); g.fillStyle = on ? '#12142b' : 'rgba(255,255,255,.5)'; g.fillText(t, x + 14, PH + 197); x += w + 10; });
-  g.fillStyle = 'rgba(255,255,255,.72)'; g.font = `700 24px ${FONT}`; g.fillText(`pm-intro.vercel.app${ORG ? ' · ' + ORG : ''}`, 60, PH + 296);
+  const site = `pm-intro.vercel.app${ORG ? ' · ' + ORG : ''}`;
+  if (cert) { // 확인 코드: 왼쪽 아래 크게, 사이트 주소는 오른쪽으로
+    g.fillStyle = 'rgba(255,255,255,.6)'; g.font = `800 22px ${FONT}`; g.fillText('확인 코드', 60, PH + 254);
+    g.fillStyle = '#ffffff'; g.font = `900 46px ${FONT}`; g.fillText(code.split('').join(String.fromCharCode(8202)), 60, PH + 306); // 글자 사이를 살짝 띄움
+    g.textAlign = 'right'; g.fillStyle = 'rgba(255,255,255,.72)'; g.font = `700 24px ${FONT}`; g.fillText(site, W - 60, PH + 304); g.textAlign = 'left';
+  } else { g.fillStyle = 'rgba(255,255,255,.72)'; g.font = `700 24px ${FONT}`; g.fillText(site, 60, PH + 296); }
   g.lineWidth = 16; g.strokeStyle = '#12142b'; g.strokeRect(8, 8, W - 16, H - 16);
   pzUrl = out.toDataURL('image/jpeg', 0.92);
   flash(); SFX.shutter(); if (cert) { SFX.fanfare(); confetti(); }
   setTimeout(() => {
-    const hint = cert ? `<p class="fine">미션 완료 · 체험 ${doneN()}/${N_EXP}. 사진을 저장해 두세요!</p>` : `<p class="fine">체험을 <b>${CERT_NEED}가지</b> 마치면 <b>미션 완료 인증샷</b>을 찍을 수 있어요 (지금 ${doneN()}/${CERT_NEED}).</p>`;
+    const hint = cert ? `<p class="fine">미션 완료 · 체험 ${doneN()}/${N_EXP} · 확인 코드 <b>${code}</b><br>확인 코드는 이 인증샷이 진짜인지 확인하는 번호예요. 사진을 저장해 두세요!</p>` : `<p class="fine">체험을 <b>${CERT_NEED}가지</b> 마치면 <b>미션 완료 인증샷</b>을 찍을 수 있어요 (지금 ${doneN()}/${CERT_NEED}).</p>`;
     openModal(`<div class="res"><div class="res-k">📸 ${cert ? '미션 완료 인증샷' : '포토존 기념사진'}</div><h2>찰칵! ${cert ? '인증샷이 나왔어요' : '기념사진이 나왔어요'}</h2>
       <img id="certImg" alt="${cert ? '미션 완료 인증샷' : '포토존 기념사진'}" src="${pzUrl}">${hint}
       <p class="fine">사진은 이 기기 안에서만 만들어져요. 저장하거나 카톡·SNS로 공유해 보세요.</p>
@@ -2807,7 +2831,7 @@ let last = performance.now();
 function frame(ts) { const dt = Math.min(0.05, Math.max(0, (ts - last) / 1000)); last = ts; if (!frameOn) { update(dt); renderFrame(); } requestAnimationFrame(frame); } // 겹쳐 띄운 게임을 하는 동안은 마을을 멈춤
 requestAnimationFrame(frame);
 window.__worldReady = true;
-if (location.hash === '#debug') window.__g = { get state() { return state; }, player, inters, SPOTS, SRC, step: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) update(dt); renderFrame(); }, go: goTo, openGo, startMeong, stopMeong, meong, startDust, dust, openPhotoZone, shootZone, PZSPOT, missionDone, playM1, playM2, playM3, showReport, refreshHud, playArcade, openBadges, openCustomizer, mons, orbs, mascots, enf, cine, FX, gfx, takePhoto, openSettings, clearCine, enfJudge, setMood, camera, run, playLab, playM3, runStop, runHit };
+if (location.hash === '#debug') window.__g = { get state() { return state; }, player, inters, SPOTS, SRC, step: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) update(dt); renderFrame(); }, go: goTo, openGo, startMeong, stopMeong, meong, startDust, dust, openPhotoZone, shootZone, PZSPOT, certCode, ccSign, missionDone, playM1, playM2, playM3, showReport, refreshHud, playArcade, openBadges, openCustomizer, mons, orbs, mascots, enf, cine, FX, gfx, takePhoto, openSettings, clearCine, enfJudge, setMood, camera, run, playLab, playM3, runStop, runHit };
 </script>
 </body>
 </html>

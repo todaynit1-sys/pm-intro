@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>인증샷 확인 코드 확인</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#12142b;--paper:#fffdf4;--soft:#f4efd8;--line:#c9c4ad;--muted:#5b6080;--sun:#ffd23f;--ok:#0b7f6a;--okbg:#d9f5ec;--bad:#c2341f;--badbg:#fde3de;--warn:#8a5a00;--warnbg:#fff3c4;
+  --disp:'Black Han Sans','Noto Sans KR','Malgun Gothic',sans-serif;--body:'Noto Sans KR','Malgun Gothic','Apple SD Gothic Neo',system-ui,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;background:#e9f2f8;color:var(--ink);font-family:var(--body);font-weight:500;line-height:1.55}
+main{max-width:860px;margin:0 auto;padding:28px 16px 60px}
+.k{font-size:13px;font-weight:900;color:var(--muted)}
+h1{font-family:var(--disp);font-weight:400;font-size:clamp(28px,6vw,40px);line-height:1.15;margin:4px 0 10px}
+h2{font-family:var(--disp);font-weight:400;font-size:22px;margin:0 0 6px}
+p{margin:0 0 10px}
+.lead{max-width:62ch}
+.safe{display:inline-block;padding:6px 12px;border:2px solid var(--ink);border-radius:10px;background:var(--sun);font-size:13.5px;font-weight:800}
+.card{margin-top:18px;padding:20px;border:2.5px solid var(--ink);border-radius:16px;background:var(--paper);box-shadow:4px 4px 0 var(--ink)}
+.fine{font-size:13px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
+label span{display:block;font-size:13px;font-weight:900;margin-bottom:4px}
+input,textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);padding:10px 12px;border:2px solid var(--ink);border-radius:10px;background:#fff}
+input:focus-visible,textarea:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid #2f9bff;outline-offset:2px}
+#oneCode{font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+textarea{min-height:150px;font-size:14px;font-family:ui-monospace,Consolas,monospace;resize:vertical}
+button{font:inherit;font-weight:900;font-size:15px;padding:10px 18px;border:2.5px solid var(--ink);border-radius:12px;background:#fff;color:var(--ink);box-shadow:3px 3px 0 var(--ink);cursor:pointer;white-space:nowrap}
+button.primary{background:var(--ink);color:#fff}
+button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+.res{margin-top:14px;padding:12px 14px;border:2px solid var(--ink);border-radius:12px;font-weight:700}
+.res b{font-size:17px}
+.res.ok{background:var(--okbg)}.res.bad{background:var(--badbg)}.res.warn{background:var(--warnbg)}
+.cols{font-size:13px;color:var(--muted);margin-top:10px}
+.sum{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.sum span{padding:4px 12px;border:2px solid var(--ink);border-radius:99px;font-size:13.5px;font-weight:900;background:#fff}
+.sum .ok{background:var(--okbg)}.sum .bad{background:var(--badbg)}.sum .warn{background:var(--warnbg)}
+.tbl{margin-top:12px;overflow-x:auto;border:2px solid var(--ink);border-radius:12px;background:#fff}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--soft);font-size:12.5px;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.n{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.c{font-weight:900;letter-spacing:.06em;white-space:nowrap}
+td.r{min-width:190px}
+.tag{display:inline-block;margin:1px 4px 1px 0;padding:1px 8px;border-radius:6px;font-size:12.5px;font-weight:900}
+.tag.ok{background:var(--okbg);color:var(--ok)}.tag.bad{background:var(--badbg);color:var(--bad)}.tag.warn{background:var(--warnbg);color:var(--warn)}
+details{margin-top:18px}
+summary{cursor:pointer;font-weight:900}
+.range{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.range label{flex:1 1 160px}
+ul{margin:6px 0 0;padding-left:20px}li{margin:3px 0}
+@media (max-width:620px){.grid{grid-template-columns:1fr}.grid button{width:100%}}
+</style>
+</head>
+<body>
+<main>
+  <div class="k">관리자용 · 푸른하늘 지킴이</div>
+  <h1>인증샷 확인 코드 확인</h1>
+  <p class="lead">미션 완료 인증샷 아래에 찍힌 <b>확인 코드</b>(예: <b style="white-space:nowrap">7KXQ-4PMZ</b>)가 진짜인지 확인합니다. 코드는 사진의 <b>이름</b>과 <b>찍은 날짜</b>로 계산되므로, 남의 사진을 가져오거나 사진의 이름·글자를 고치면 맞지 않습니다.</p>
+  <p class="safe">붙여 넣은 이름·연락처는 이 브라우저 안에서만 확인하고 어디로도 보내지 않아요.</p>
+
+  <section class="card" aria-labelledby="h-one">
+    <h2 id="h-one">하나씩 확인</h2>
+    <div class="grid">
+      <label><span>사진에 적힌 이름</span><input id="oneName" autocomplete="off" placeholder="예: 김하늘"></label>
+      <label><span>확인 코드</span><input id="oneCode" autocomplete="off" placeholder="7KXQ-4PMZ" maxlength="12"></label>
+      <button class="primary" id="oneGo" type="button">확인</button>
+    </div>
+    <div id="oneRes" aria-live="polite"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-many">
+    <h2 id="h-many">응모 목록 한꺼번에 확인</h2>
+    <p>구글폼 응답 시트에서 <b>제목 줄까지</b> 표를 통째로 복사해 붙여 넣으세요. 제목에 <b>이름</b>, <b>코드</b>가 들어간 열을 찾아 확인하고, <b>전화·휴대폰·연락처</b> 열이 있으면 같은 번호로 여러 번 낸 응모도 찾아요.</p>
+    <textarea id="many" spellcheck="false" placeholder="타임스탬프	이름	휴대폰 번호	확인 코드
+2026. 11. 13 오후 3:12:05	김하늘	010-1234-5678	7KXQ-4PMZ"></textarea>
+    <div class="row"><button class="primary" id="manyGo" type="button">확인하기</button><button id="manyCopy" type="button" hidden>결과 열 복사</button><span class="fine" id="copyMsg" aria-live="polite"></span></div>
+    <div id="manyCols" class="cols"></div>
+    <div id="manySum" class="sum" aria-live="polite"></div>
+    <div id="manyTbl"></div>
+    <p class="fine" id="copyHelp" hidden>'결과 열 복사'를 누른 뒤 시트에서 비어 있는 열의 <b>제목 줄 칸</b>을 눌러 붙여 넣으면 줄마다 결과가 나란히 들어가요.</p>
+  </section>
+
+  <details class="card">
+    <summary>확인 범위와 읽어 두기</summary>
+    <div class="range">
+      <label><span>이날부터 찍은 사진</span><input type="date" id="from"></label>
+      <label><span>이날까지 찍은 사진</span><input type="date" id="to"></label>
+    </div>
+    <ul class="fine">
+      <li>코드 앞 4자리는 기기마다 처음 인증샷을 찍을 때 정해져요. 앞 4자리가 같은데 이름이 다르면 <b>같은 기기에서 여러 번</b> 낸 응모일 수 있어요 (드물게 우연히 겹칠 수도 있어요).</li>
+      <li>이름의 띄어쓰기와 영문 대소문자는 따지지 않아요. 글자가 하나라도 다르면 코드가 맞지 않아요.</li>
+      <li>코드는 게임 안에서 계산되므로, 게임 코드를 뜯어보는 사람까지 막지는 못해요. 경품이 큰 이벤트라면 추첨 뒤 당첨자의 게임 화면을 한 번 더 확인해 주세요.</li>
+    </ul>
+  </details>
+</main>
+
+<script>
+/* 인증샷 확인 코드 — 게임(../index.html)의 같은 부분과 글자 하나까지 똑같아야 해요. */
+const CC_ABC = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ', CC_SALT = 'pm-season|푸른하늘지킴이|cert-1';
+function ccHash(str) { // cyrb53 (53비트 해시)
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+}
+const ccName = (s) => String(s || '').normalize('NFC').replace(/\s+/g, '').toLowerCase();
+function ccSign(key, name, ymd) { let h = ccHash(`${CC_SALT}|${key}|${ccName(name)}|${ymd}`), t = ''; for (let i = 0; i < 4; i++) { t += CC_ABC[h % 32]; h = Math.floor(h / 32); } return t; }
+const ccYmd = (d) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+
+/* ---------- 확인 ---------- */
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+$('#from').value = '2026-11-01'; $('#to').value = isoDay(new Date());
+
+const cleanCode = (s) => String(s || '').toUpperCase().replace(/[\s\-–—_.·]/g, '');
+const codeShape = (c) => c.length === 8 && [...c].every((ch) => CC_ABC.includes(ch));
+let dayList = [];
+function days() { // 확인할 날짜들 (YYYYMMDD)
+  const a = new Date(($('#from').value || '2026-11-01') + 'T12:00'), b = new Date(($('#to').value || isoDay(new Date())) + 'T12:00'), out = [];
+  if (isNaN(a) || isNaN(b)) return out;
+  for (let d = new Date(a); d <= b && out.length < 3700; d.setDate(d.getDate() + 1)) out.push(ccYmd(d));
+  return out;
+}
+function verify(name, raw) {
+  const c = cleanCode(raw);
+  if (!c) return { st: 'bad', msg: '코드가 비어 있어요' };
+  if (!codeShape(c)) return { st: 'bad', msg: '코드 모양이 아니에요', c };
+  if (!ccName(name)) return { st: 'bad', msg: '이름이 비어 있어요', c };
+  const key = c.slice(0, 4), sig = c.slice(4);
+  const hit = dayList.find((ymd) => ccSign(key, name, ymd) === sig);
+  return hit ? { st: 'ok', msg: `${+hit.slice(0, 4)}. ${+hit.slice(4, 6)}. ${+hit.slice(6)}. 인증샷`, c, key } : { st: 'bad', msg: '코드가 맞지 않아요', c, key };
+}
+const pretty = (c) => (c && c.length === 8 ? `${c.slice(0, 4)}-${c.slice(4)}` : c || '');
+
+$('#oneGo').onclick = () => {
+  dayList = days(); const name = $('#oneName').value, r = verify(name, $('#oneCode').value);
+  $('#oneRes').innerHTML = r.st === 'ok'
+    ? `<div class="res ok"><b>✅ 진짜 인증샷이에요</b><br>${esc(name.trim())} · ${esc(pretty(r.c))} · ${r.msg}</div>`
+    : `<div class="res bad"><b>❌ ${r.msg}</b><br>${r.c && codeShape(r.c) ? '사진의 이름과 글자가 똑같은지, 찍은 날짜가 확인 범위 안인지 봐 주세요.' : '확인 코드는 영문·숫자 8자리예요 (예: <span style="white-space:nowrap">7KXQ-4PMZ</span>). 0·1·I·O 는 쓰지 않아요.'}</div>`;
+};
+['#oneName', '#oneCode'].forEach((s) => $(s).addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#oneGo').click(); }));
+
+/* ---------- 목록 한꺼번에 ---------- */
+function parseTable(text) { // 탭(시트에서 복사) 또는 쉼표(CSV)로 나뉜 표. 따옴표로 감싼 칸도 읽음
+  const delim = text.includes('\t') ? '\t' : ',', rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch; continue; }
+    if (ch === '"' && cell === '') q = true;
+    else if (ch === delim) { row.push(cell); cell = ''; }
+    else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += ch;
+  }
+  if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter((r) => r.some((c) => c.trim()));
+}
+const colName = (i) => { let s = ''; i++; while (i) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
+const phoneKey = (s) => String(s || '').replace(/\D/g, '');
+let lastRes = null;
+
+$('#manyGo').onclick = () => {
+  dayList = days(); const rows = parseTable($('#many').value);
+  $('#manyCopy').hidden = $('#copyHelp').hidden = true; $('#copyMsg').textContent = ''; lastRes = null;
+  if (!rows.length) { $('#manyCols').textContent = ''; $('#manySum').innerHTML = '<span class="bad">붙여 넣은 내용이 없어요</span>'; $('#manyTbl').innerHTML = ''; return; }
+  // 열 찾기: 제목 줄에서 이름·코드·연락처. 제목이 없으면 코드 모양이 가장 많은 열을 코드로, 그 앞의 첫 열을 이름으로
+  const head = rows[0].map((c) => c.trim()), find = (re, not) => head.findIndex((h) => re.test(h) && !(not && not.test(h)));
+  let ci = find(/코드|code/i), ni = find(/이름|성명|닉네임|name/i, /코드|code/i), pi = find(/전화|휴대|핸드폰|연락처|phone|mobile/i);
+  const hasHead = ci >= 0 && ni >= 0;
+  if (!hasHead) {
+    const n = Math.max(...rows.map((r) => r.length)), score = Array.from({ length: n }, (_, j) => rows.filter((r) => codeShape(cleanCode(r[j]))).length);
+    ci = score.indexOf(Math.max(...score)); ni = ci === 0 ? 1 : 0; pi = -1;
+    if (!score[ci]) { $('#manyCols').textContent = ''; $('#manySum').innerHTML = '<span class="bad">확인 코드가 든 열을 찾지 못했어요. 제목 줄(이름, 확인 코드)까지 함께 붙여 넣어 주세요.</span>'; $('#manyTbl').innerHTML = ''; return; }
+  }
+  const lab = (i) => `${colName(i)}열${hasHead ? ` '${head[i]}'` : ''}`;
+  $('#manyCols').textContent = `이름: ${lab(ni)} · 코드: ${lab(ci)}${pi >= 0 ? ` · 연락처: ${lab(pi)}` : ' · 연락처 열 없음'}`;
+  const data = (hasHead ? rows.slice(1) : rows).map((r, i) => ({ line: i + (hasHead ? 2 : 1), name: (r[ni] || '').trim(), code: r[ci] || '', phone: pi >= 0 ? phoneKey(r[pi]) : '' }));
+  const seenCode = new Map(), seenKey = new Map(), seenPhone = new Map();
+  data.forEach((d) => {
+    const r = verify(d.name, d.code); d.st = r.st; d.msg = r.msg; d.c = r.c; d.tags = [];
+    if (r.c && codeShape(r.c)) {
+      if (seenCode.has(r.c)) d.tags.push(['warn', `같은 코드 (${seenCode.get(r.c)}행)`]); else seenCode.set(r.c, d.line);
+      const k = r.c.slice(0, 4);
+      if (r.st === 'ok') { const o = seenKey.get(k); if (o && o.code !== r.c) d.tags.push(['warn', `같은 기기일 수 있음 (${o.line}행)`]); else if (!o) seenKey.set(k, { line: d.line, code: r.c }); }
+    }
+    if (d.phone) { if (seenPhone.has(d.phone)) d.tags.push(['warn', `같은 연락처 (${seenPhone.get(d.phone)}행)`]); else seenPhone.set(d.phone, d.line); }
+  });
+  const ok = data.filter((d) => d.st === 'ok'), clean = ok.filter((d) => !d.tags.length), bad = data.length - ok.length, warn = data.filter((d) => d.tags.length).length;
+  $('#manySum').innerHTML = `<span>전체 ${data.length}건</span><span class="ok">문제없음 ${clean.length}</span><span class="bad">코드 틀림 ${bad}</span><span class="warn">중복 의심 ${warn}</span>`;
+  $('#manyTbl').innerHTML = `<div class="tbl"><table><thead><tr><th>행</th><th>이름</th><th>확인 코드</th><th>결과</th></tr></thead><tbody>${data.map((d) => `<tr><td class="n">${d.line}</td><td>${esc(d.name) || '<span class="fine">(비어 있음)</span>'}</td><td class="c">${esc(pretty(d.c) || d.code)}</td><td class="r"><span class="tag ${d.st}">${d.st === 'ok' ? '✅ ' : '❌ '}${esc(d.msg)}</span>${d.tags.map(([k, t]) => `<span class="tag ${k}">⚠️ ${esc(t)}</span>`).join('')}</td></tr>`).join('')}</tbody></table></div>`;
+  lastRes = { hasHead, data }; $('#manyCopy').hidden = $('#copyHelp').hidden = false;
+};
+$('#manyCopy').onclick = async () => {
+  if (!lastRes) return;
+  const lines = lastRes.data.map((d) => [(d.st === 'ok' ? '확인' : '틀림: ' + d.msg), ...d.tags.map((t) => t[1])].join(' / '));
+  const text = (lastRes.hasHead ? ['코드 확인 결과', ...lines] : lines).join('\n');
+  try { await navigator.clipboard.writeText(text); $('#copyMsg').textContent = `${lines.length}줄을 복사했어요.`; }
+  catch (e) { const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); $('#copyMsg').textContent = `${lines.length}줄을 복사했어요.`; }
+};
+</script>
+</body>
+</html>
