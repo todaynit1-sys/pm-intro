@@ -681,12 +681,13 @@ renderer.setPixelRatio(Math.min(devicePixelRatio || 1, isTouch ? 1.5 : 2));
 renderer.setSize(innerWidth, innerHeight, false);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const EXPOSURE = 0.86; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = EXPOSURE; // 후처리를 켰을 때는 후처리 셰이더가 같은 톤 매핑을 함
 
 const scene = new THREE.Scene();
 const SKY = {
-  hazy: { fog: new THREE.Color('#c9c0a6'), near: 14, far: 66, sun: 1.5, hemi: 0.95 },
-  clear: { fog: new THREE.Color('#9cc8e6'), near: 80, far: 260, sun: 2.3, hemi: 1.12 },
-  spike: { fog: new THREE.Color('#b3a184'), near: 6, far: 48, sun: 1.0, hemi: 0.85 },
+  hazy: { fog: new THREE.Color('#c9c0a6'), near: 14, far: 66, sun: 2.1, hemi: 0.62 },
+  clear: { fog: new THREE.Color('#9cc8e6'), near: 80, far: 260, sun: 3.4, hemi: 0.66 },
+  spike: { fog: new THREE.Color('#b3a184'), near: 6, far: 48, sun: 1.4, hemi: 0.58 },
 };
 scene.background = SKY.hazy.fog.clone();
 scene.fog = new THREE.Fog(SKY.hazy.fog.clone(), SKY.hazy.near, SKY.hazy.far);
@@ -701,8 +702,108 @@ sun.shadow.camera.updateProjectionMatrix();
 sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
 scene.add(sun, sun.target);
 
+/* ---------- 사실적인 재질 ----------
+   모든 색 재질을 빛을 물리적으로 받는 재질로 만들고, 표면 무늬는 그림 파일 없이 셰이더가 실제 위치(미터)로 그려요.
+   RK_OF 에 '색 → 표면 종류'를 적어 두면 그 색으로 만든 것(box·cyl·flat…)이 모두 그 표면이 돼요.
+   사람·길동무·자동차처럼 움직이는 것은 무늬가 미끄러져 보이지 않게 민무늬(plain)로 만들어요. */
+const RK = { PLAIN: 0, GRASS: 1, ASPHALT: 2, PAVE: 3, WALL: 4, BRICK: 5, ROOF: 6, WOOD: 7, GLASS: 8, GENERIC: 9, SOIL: 10, LEAF: 11, PANEL: 12, CARGLASS: 13, METAL: 14 };
+const RK_SET = { 0: [0.72, 0, 0.55], 1: [0.95, 0, 0.35], 2: [0.9, 0, 0.4], 3: [0.86, 0, 0.45], 4: [0.9, 0, 0.5], 5: [0.92, 0, 0.45], 6: [0.8, 0, 0.5], 7: [0.82, 0, 0.45], 8: [0.08, 0, 1.6], 9: [0.85, 0, 0.5], 10: [0.98, 0, 0.3], 11: [0.9, 0, 0.4], 12: [0.82, 0, 0.55], 13: [0.08, 0, 1.6], 14: [0.42, 0.55, 1] };
+const RK_OF = {
+  '#666c74': RK.ASPHALT, '#ece5d2': RK.PAVE, '#d9d4c6': RK.PAVE, '#c96f5a': RK.PAVE,
+  '#fbe9c8': RK.WALL, '#f4f4f0': RK.WALL, '#fff3d6': RK.BRICK, '#e8eef2': RK.PANEL, '#c9836a': RK.ROOF,
+  '#d9695a': RK.ROOF, '#4a6fa5': RK.ROOF, '#2f4b6e': RK.ROOF,
+  '#b98a5a': RK.WOOD, '#8a6a4a': RK.WOOD, '#6b5a4a': RK.WOOD, '#8a5a3a': RK.WOOD,
+  '#7fb7e6': RK.GLASS, '#9fd0ee': RK.GLASS, '#cfe8f5': RK.GLASS,
+  '#55616b': RK.METAL, '#3d4a52': RK.METAL, '#8a9299': RK.METAL, '#2b3a44': RK.METAL, '#35506e': RK.METAL,
+  '#b98f5e': RK.SOIL, '#9a7446': RK.SOIL, '#7a5c3e': RK.SOIL, '#b89466': RK.SOIL, '#6a5a4a': RK.SOIL, '#9a8a66': RK.SOIL,
+  '#6fb36a': RK.LEAF, '#5fa860': RK.LEAF,
+};
+const R_VERT = 'varying vec3 vWp; varying vec3 vWn; varying vec3 vLp; varying vec2 vUv2;\n';
+const R_FRAG = `varying vec3 vWp; varying vec3 vWn; varying vec3 vLp; varying vec2 vUv2;
+float rRough = 0.0; float rGlass = 1.0;
+float rh(vec2 p){ p = mod(p, 512.0); vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
+float rn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(rh(i), rh(i + vec2(1.0, 0.0)), f.x), mix(rh(i + vec2(0.0, 1.0)), rh(i + vec2(1.0, 1.0)), f.x), f.y); }
+#ifdef LITE
+float rf(vec2 p){ return rn(p) * 0.6 + rn(p * 2.03 + 3.1) * 0.4; }
+#else
+float rf(vec2 p){ return rn(p) * 0.5 + rn(p * 2.03 + 3.1) * 0.3 + rn(p * 4.01 + 7.7) * 0.2; }
+#endif
+`;
+const R_BODY = `
+{
+  vec3 rN = normalize(vWn), an = abs(rN); bool top = an.y > 0.6;
+  vec2 P = top ? vWp.xz : (an.x > an.z ? vWp.zy : vWp.xy);
+  vec3 c = diffuseColor.rgb; float n1 = rf(P * 0.6);
+#ifdef LITE
+  float n2 = 0.5;
+#else
+  float n2 = rn(P * 11.0);
+#endif
+#if KIND == 1
+  c *= 0.6 + 0.62 * rf(P * 0.22);
+  c = mix(c, c * vec3(1.22, 1.06, 0.58), smoothstep(0.5, 0.8, rf(P * 0.09 + 5.0)) * 0.55);
+  c *= 0.74 + 0.5 * rn(P * 4.3); c *= 0.9 + 0.2 * n2;
+#elif KIND == 2
+  c *= 0.82 + 0.28 * n1; c *= 0.88 + 0.24 * rh(floor(P * 55.0));
+  c = mix(c, c * 0.7, smoothstep(0.6, 0.8, rf(P * 0.35 + 9.0)) * 0.6);
+#elif KIND == 3
+  if (top) { vec2 b = P * vec2(2.0, 4.0); b.x += 0.5 * floor(b.y); vec2 f = fract(b); float id = rh(floor(b));
+    float j = smoothstep(0.0, 0.05, f.x) * smoothstep(1.0, 0.95, f.x) * smoothstep(0.0, 0.09, f.y) * smoothstep(1.0, 0.91, f.y);
+    c *= (0.84 + 0.22 * id) * (0.9 + 0.16 * n1); c = mix(c * 0.55, c, j); c *= 0.94 + 0.12 * n2; }
+#elif KIND == 4 || KIND == 5 || KIND == 12
+  if (!top) {
+  #if KIND == 5
+    vec2 b = P * vec2(2.5, 7.7); b.x += 0.5 * floor(b.y); vec2 f = fract(b); float id = rh(floor(b));
+    float j = smoothstep(0.0, 0.06, f.x) * smoothstep(1.0, 0.94, f.x) * smoothstep(0.0, 0.14, f.y) * smoothstep(1.0, 0.86, f.y);
+    c *= 0.8 + 0.3 * id; c = mix(vec3(0.68, 0.66, 0.62), c, j);
+  #elif KIND == 12
+    vec2 f = fract(P * vec2(0.667, 0.8)); c = mix(c * 0.6, c, smoothstep(0.0, 0.012, f.x) * smoothstep(0.0, 0.016, f.y));
+  #endif
+    c *= 0.9 + 0.18 * n1;
+    c *= 1.0 - 0.14 * smoothstep(0.5, 0.85, rn(vec2(P.x * 2.6, P.y * 0.22 + 3.0)));
+    c *= mix(0.66, 1.0, smoothstep(0.02, 0.55, vWp.y));
+  } else c *= 0.88 + 0.2 * n1;
+#elif KIND == 6
+  if (an.y > 0.97) { c *= 0.85 + 0.25 * n1; c *= mix(0.8, 1.0, smoothstep(0.0, 0.02, fract(P.x / 1.2))); }
+  else { vec2 h = normalize(vec2(-rN.z, rN.x) + vec2(0.0001)); float u = dot(vWp.xz, h) * 3.4, v = vWp.y * 5.5; u += 0.5 * floor(v);
+    c *= (0.78 + 0.3 * rh(floor(vec2(u, v)))) * (0.62 + 0.5 * fract(v)) * mix(0.75, 1.0, smoothstep(0.0, 0.1, fract(u))); }
+#elif KIND == 7
+  if (top) { float pl = P.y / 0.16; c *= mix(0.6, 1.0, smoothstep(0.0, 0.08, fract(pl))) * (0.85 + 0.25 * rh(vec2(floor(pl), 3.0))); c *= 0.88 + 0.2 * rn(vec2(P.x * 3.0, P.y * 60.0)); }
+  else c *= 0.8 + 0.32 * rn(vec2(P.x * 26.0, P.y * 1.6));
+#elif KIND == 8
+  vec2 u = vUv2; float e = min(min(u.x, 1.0 - u.x), min(u.y, 1.0 - u.y));
+  float fr = max(1.0 - smoothstep(0.06, 0.075, e), 1.0 - smoothstep(0.012, 0.02, abs(u.x - 0.5)));
+  vec3 gl = mix(vec3(0.045, 0.07, 0.10), c, 0.22) + vec3(0.10, 0.14, 0.18) * smoothstep(0.2, 1.0, u.y);
+  c = mix(gl, vec3(0.9, 0.9, 0.88), fr); rRough = mix(0.05, 0.6, fr); rGlass = 1.0 - fr;
+#elif KIND == 13
+  c = mix(vec3(0.05, 0.08, 0.11), c, 0.25);
+#elif KIND == 9 || KIND == 14
+  c *= 0.9 + 0.16 * n1;
+#elif KIND == 10
+  c *= 0.72 + 0.45 * n1; c *= 0.85 + 0.3 * rh(floor(P * 22.0));
+#elif KIND == 11
+  c *= 0.5 + 1.25 * rn(vLp.xy * 7.0 + vLp.z * 3.1) * rn(vLp.yz * 8.0 + 2.0); c *= 0.85 + 0.3 * rn(vLp.xz * 2.0);
+  c *= 0.72 + 0.4 * smoothstep(-0.6, 0.9, normalize(vLp).y);
+#endif
+  diffuseColor.rgb = c;
+}
+`;
+function rCompile(sh) {
+  sh.vertexShader = R_VERT + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vLp = transformed; vWp = (modelMatrix * vec4(transformed, 1.0)).xyz; vWn = mat3(modelMatrix) * objectNormal; vUv2 = uv;');
+  sh.fragmentShader = R_FRAG + sh.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>' + R_BODY)
+    .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\n#if KIND == 8\n  roughnessFactor = rRough;\n#endif')
+    .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n#if KIND == 8\n  totalEmissiveRadiance *= rGlass;\n#endif');
+}
+function rMat(c, kind = RK.PLAIN, extra) { // 표면 종류를 정해서 재질 만들기
+  const [roughness, metalness, envMapIntensity] = RK_SET[kind], m = new THREE.MeshStandardMaterial(Object.assign({ color: c, roughness, metalness, envMapIntensity }, extra));
+  if (kind !== RK.PLAIN) { m.defines.KIND = kind; if (isTouch) m.defines.LITE = 1; m.onBeforeCompile = rCompile; }
+  return m;
+}
+let plainMode = 0; // 0보다 크면 민무늬 (움직이는 것)
+const plainly = (fn) => function (...a) { plainMode++; try { return fn.apply(this, a); } finally { plainMode--; } };
 const mats = new Map();
-const mat = (c) => { if (!mats.has(c)) mats.set(c, new THREE.MeshLambertMaterial({ color: c })); return mats.get(c); };
+const mat = (c) => { const kind = plainMode ? (RK_OF[c] === RK.GLASS ? RK.CARGLASS : RK.PLAIN) : (RK_OF[c] ?? RK.GENERIC), key = kind + c; if (!mats.has(key)) mats.set(key, rMat(c, kind)); return mats.get(key); };
+makePerson = plainly(makePerson); makeMascot = plainly(makeMascot); makeCar = plainly(makeCar); duck = plainly(duck); makeMon = plainly(makeMon);
 const matsD = new Map(); // 양면으로 보이는 재질 (망토 안쪽, 바람개비 날개)
 const matD = (c) => { if (!matsD.has(c)) matsD.set(c, new THREE.MeshLambertMaterial({ color: c, side: THREE.DoubleSide })); return matsD.get(c); };
 const matsB = new Map(); // 빛을 안 받는(스스로 빛나 보이는) 재질: 로봇 화면 눈
@@ -728,7 +829,7 @@ function textPlane(text, { w = 6, h = 1.2, bg = '#217569', fg = '#ffffff', size 
   while (g.measureText(text).width > c.width * 0.9 && fs > 10) { fs -= 2; g.font = `${weight} ${fs}px ${FONT}`; }
   g.fillStyle = fg; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, c.width / 2, c.height / 2 + fs * 0.06);
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
-  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, toneMapped: false }));
 }
 const sign = (text, x, y, z, o) => { const m = textPlane(text, o); m.position.set(x, y, z); scene.add(m); return m; };
 
@@ -773,7 +874,7 @@ const bbCv = document.createElement('canvas'); bbCv.width = 512; bbCv.height = 2
 const bbTex = new THREE.CanvasTexture(bbCv); bbTex.colorSpace = THREE.SRGBColorSpace;
 box(5.4, 3.2, 0.4, '#2b3a44', 5.6, 3.7, -3.6); cyl(0.18, 0.18, 2.2, '#55616b', 3.8, 1.1, -3.6); cyl(0.18, 0.18, 2.2, '#55616b', 7.4, 1.1, -3.6);
 for (const [x, z] of [[4, -5.4], [6, -5.7], [7.8, -5.3]]) { sph(1.2, '#6fb36a', x, 0.7, z).scale.y = 0.75; col(x, z, 1.2); } // 전광판 뒤 덤불: 판에 가려지는 자리로 못 들어가게
-{ const m = new THREE.Mesh(new THREE.PlaneGeometry(5, 2.81), new THREE.MeshBasicMaterial({ map: bbTex })); m.position.set(5.6, 3.7, -3.39); scene.add(m); }
+{ const m = new THREE.Mesh(new THREE.PlaneGeometry(5, 2.81), new THREE.MeshBasicMaterial({ map: bbTex, toneMapped: false })); m.position.set(5.6, 3.7, -3.39); scene.add(m); }
 col(3.8, -3.6, 0.5); col(7.4, -3.6, 0.5); col(5.6, -3.6, 0.9);
 function drawBoard() {
   const g = bbCv.getContext('2d'), sp = isSpike(), v = sp ? F.spike : Math.round(pmNow()), [gn, gc] = grade(v);
@@ -794,13 +895,13 @@ function drawBoard() {
 for (const [x, z, r] of [[5.6, 8.2, -0.6], [-6.4, 5, 1.2]]) { const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = r; scene.add(g); box(1.9, 0.14, 0.6, '#b98a5a', 0, 0.5, 0, g); box(1.9, 0.5, 0.1, '#b98a5a', 0, 0.85, -0.26, g); box(0.12, 0.5, 0.5, '#6b5a4a', -0.8, 0.25, 0, g); box(0.12, 0.5, 0.5, '#6b5a4a', 0.8, 0.25, 0, g); col(x, z, 0.9); }
 for (const [x, z] of [[-7.6, 8.8], [7.4, 6.4], [3.4, 10.2]]) { disc(1.1, '#7a5c3e', x, z, 0.03); for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2, q = i === 6 ? 0 : 0.62; cyl(0.03, 0.03, 0.4, '#5fa860', x + Math.cos(a) * q, 0.2, z + Math.sin(a) * q, null, 5, false); sph(0.17, ['#ff8fab', '#ffd166', '#ffffff', '#c9a3ff'][i % 4], x + Math.cos(a) * q, 0.46, z + Math.sin(a) * q); } col(x, z, 0.9); }
 // 나무
-const trees = [], LEAF_GEO = new THREE.IcosahedronGeometry(1, 1), leafMats = ['#6fb36a', '#5fa860', '#7dbf74', '#8cc97a'].map((c) => new THREE.MeshLambertMaterial({ color: c, flatShading: true })), blossomMat = new THREE.MeshLambertMaterial({ color: '#f7b9cf', flatShading: true });
+const trees = [], LEAF_GEO = (() => { const g = new THREE.IcosahedronGeometry(1, 2), p = g.attributes.position, n = g.attributes.normal, v = new THREE.Vector3(); for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i); const k = 1 + 0.16 * Math.sin(v.x * 5.1 + v.y * 3.3) * Math.cos(v.z * 4.7 - v.y * 2.1) + 0.09 * Math.sin(v.x * 11 + v.z * 9) * Math.sin(v.y * 10); p.setXYZ(i, v.x * k, v.y * k, v.z * k); v.normalize(); n.setXYZ(i, v.x, v.y, v.z); } return g; })(), leafMats = ['#4f7f3a', '#5b8a3f', '#466f35', '#6a9446'].map((c) => rMat(c, RK.LEAF)), blossomMat = rMat('#eeb4c8', RK.LEAF);
 function tree(x, z, s = 1, blossom = false) { // 각진 잎 덩어리 여러 개로 만든 나무 (바람에 살짝 흔들림). blossom: 벚나무
   const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(s); g.rotation.y = rand(0, 6); scene.add(g);
   cyl(0.2, 0.32, 1.7, '#8a6a4a', 0, 0.85, 0, g, 7);
   const top = new THREE.Group(); top.position.y = 1.55; g.add(top);
   const m = blossom ? blossomMat : pick(leafMats);
-  for (const [px, py, pz, r] of [[0, 1.0, 0, 1.3], [0.72, 0.45, 0.2, 0.9], [-0.66, 0.55, -0.2, 0.86], [0.1, 0.5, -0.72, 0.8], [-0.1, 1.78, 0.1, 0.74]]) { const b = new THREE.Mesh(LEAF_GEO, m); b.position.set(px, py, pz); b.scale.set(r, r * 0.85, r); b.rotation.set(rand(0, 3), rand(0, 3), 0); b.castShadow = true; b.receiveShadow = true; top.add(b); }
+  for (const [px, py, pz, r] of [[0, 1.0, 0, 1.3], [0.72, 0.45, 0.2, 0.9], [-0.66, 0.55, -0.2, 0.86], [0.1, 0.5, -0.72, 0.8], [-0.1, 1.78, 0.1, 0.74], [0.5, 1.35, -0.45, 0.66], [-0.55, 1.3, 0.5, 0.62], [0.15, 0.4, 0.75, 0.7]]) { const b = new THREE.Mesh(LEAF_GEO, m); b.position.set(px, py, pz); b.scale.set(r, r * 0.85, r); b.rotation.set(rand(0, 3), rand(0, 3), 0); b.castShadow = r > 0.84; b.receiveShadow = true; top.add(b); }
   trees.push({ top, seed: rand(0, 9) }); col(x, z, 0.55 * s);
 }
 [[6, -7.8], [-27, -7.4, 1.2], [-31, 3], [-29, 18, 1.15], [-27.5, 25.5], [-11, 25, 1.2], [9, 25.5], [26, 24, 1.2], [31, 11], [31, -1, 1.1], [32, -7.8], [10, 9], [-9, 14], [34.5, 14, 1.1], [-27, -1], [-33, 11, 1.3], [33, 20], [-35, -6], [36, -6, 1.2], [-31.5, 27], [18, 27], [0, 28, 1.2], [-36, 24], [-13, -23], [3, -24, 1.2], [19, -23.5], [-30, -24], [33, -24, 1.1]].forEach(([x, z, s]) => tree(x, z, s));
@@ -848,7 +949,7 @@ const dustPatches = [[26, -13.2, 1.5], [28.2, -14.4, 1.2], [27.4, -16.2, 1.4], [
 box(6, 3.2, 4.4, '#fff3d6', -19, 1.6, -7.2); box(6.5, 0.25, 1.5, '#e86b5a', -19, 2.75, -4.55); box(6.3, 0.3, 4.7, '#c9836a', -19, 3.35, -7.2);
 sign('따끈따끈 빵집', -19, 3.9, -4.9, { w: 3.4, h: 0.6, bg: '#8a5a3a', size: 0.56 });
 box(1.6, 1.2, 0.1, '#9fd0ee', -20.6, 1.7, -4.96, null, false); box(1.2, 2.1, 0.06, '#ffb35c', -17.7, 1.05, -4.99, null, false);
-const shopDoor = new THREE.Group(); shopDoor.position.set(-18.3, 0, -4.94); shopDoor.rotation.y = 1.35; scene.add(shopDoor); box(1.2, 2.1, 0.1, '#8a5a3a', 0.6, 1.05, 0, shopDoor);
+const shopDoor = new THREE.Group(); shopDoor.position.set(-18.3, 0, -4.94); shopDoor.rotation.y = 1.35; scene.add(shopDoor); plainly(() => box(1.2, 2.1, 0.1, '#8a5a3a', 0.6, 1.05, 0, shopDoor))();
 col(-19, -7.2, 3.35); col(-21.2, -8.8, 1.4); col(-16.8, -8.8, 1.4);
 
 const srcSmoke = [
@@ -1115,6 +1216,7 @@ function startPreview(cv, draft) {
   if (!cv) return null;
   let r;
   try { r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true }); } catch (e) { return null; }
+  r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = EXPOSURE * 1.25;
   const w = cv.clientWidth || 150, h = cv.clientHeight || 200;
   r.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); r.setSize(w, h, false);
   const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight('#fff8ec', '#8aa07a', 1.45));
@@ -1145,8 +1247,8 @@ function npc(x, z, rot, opt, extra) { const R = makePerson(opt); R.root.position
 npc(-8.6, -9.2, 0.2, { top: 'shirt', shirt: '#2f4b6e', pants: '#2b3440', style: 'cap', hair: '#2f4b6e', vest: true });                                    // 단속 요원
 npc(16.2, -0.6, -0.2, { body: 'f', style: 'bob', top: 'shirt', tie: false, shirt: '#f4f4f0', pants: '#38485a', hair: '#3a2a20', acc: 'glasses' });        // 상황실 주무관
 npc(16.6, 13.2, -1.2, { top: 'long', bottom: 'overalls', shirt: '#8fae6a', pants: '#6b7f9a', style: 'short', hair: '#5a4a3a' }, (R) => {                  // 농부 (밀짚모자)
-  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.74, 0.74, 0.04, 22), mat('#e3c77a')); brim.position.set(0, 0.6, 0); brim.castShadow = true; R.head.add(brim);
-  const top = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), mat('#e3c77a')); top.position.set(0, 0.42, 0); R.head.add(top);
+  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.74, 0.74, 0.04, 22), rMat('#e3c77a')); brim.position.set(0, 0.6, 0); brim.castShadow = true; R.head.add(brim);
+  const top = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), rMat('#e3c77a')); top.position.set(0, 0.42, 0); R.head.add(top);
 });
 npc(-1.2, 16.4, 0.3, { top: 'vest', shirt: '#f08a4b', pants: '#38485a', helmet: true });                                                                     // 현장 소장
 npc(-17.2, -3.7, 0.4, { body: 'f', style: 'bun', top: 'cardigan', bottom: 'skirt', tie: false, shirt: '#f6d6a8', pants: '#8a5a3a', hair: '#5a3a2a' });     // 빵집 사장
@@ -2121,9 +2223,17 @@ function glow(parent, x, y, z, color, size, op = 0.8, m = null) { const s = new 
 const skyU = { uH: { value: new THREE.Color('#c9c0a6') }, uZ: { value: new THREE.Color('#bdb49a') }, uSun: { value: new THREE.Vector3(0.12, 0.9, -0.4).normalize() }, uSunCol: { value: new THREE.Color('#fff3c4') }, uGlow: { value: 0.4 } };
 const dome = new THREE.Mesh(new THREE.SphereGeometry(400, 24, 16), new THREE.ShaderMaterial({ uniforms: skyU, side: THREE.BackSide, depthWrite: false, fog: false,
   vertexShader: 'varying vec3 vD;\nvoid main(){ vD = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-  fragmentShader: 'uniform vec3 uH; uniform vec3 uZ; uniform vec3 uSunCol; uniform vec3 uSun; uniform float uGlow; varying vec3 vD;\nvoid main(){\n  vec3 d = normalize(vD); float h = clamp(d.y, 0.0, 1.0);\n  vec3 c = mix(uH, uZ, pow(h, 0.55));\n  float s = max(dot(d, uSun), 0.0);\n  c += uSunCol * (pow(s, 22.0) * 0.32 + pow(s, 300.0) * 1.4) * uGlow;\n  gl_FragColor = vec4(c, 1.0);\n  #include <colorspace_fragment>\n}' }));
+  fragmentShader: 'uniform vec3 uH; uniform vec3 uZ; uniform vec3 uSunCol; uniform vec3 uSun; uniform float uGlow; varying vec3 vD;\nvoid main(){\n  vec3 d = normalize(vD); float h = clamp(d.y, 0.0, 1.0);\n  vec3 c = mix(uH, uZ, pow(h, 0.55));\n  float s = max(dot(d, uSun), 0.0);\n  c += uSunCol * (pow(s, 22.0) * 0.32 + pow(s, 300.0) * 1.4) * uGlow;\n  gl_FragColor = vec4(c, 1.0);\n  #include <tonemapping_fragment>\n  #include <colorspace_fragment>\n}' }));
 dome.renderOrder = -10; dome.frustumCulled = false; scene.add(dome);
 const sunGlow = glow(null, 0, 0, 0, '#fff3c4', 70, 0.5);
+const pmrem = new THREE.PMREMGenerator(renderer), envScene = new THREE.Scene(); { const m = new THREE.Mesh(dome.geometry, dome.material); m.frustumCulled = false; envScene.add(m); }
+let envRT = null, envKey = '', envT = 0;
+canvas.addEventListener('webglcontextrestored', () => { envKey = ''; envT = 0; });
+function updateEnv(dt) { // 유리·물·금속에 하늘이 비치고, 그늘에도 하늘빛이 돎. 하늘 색이 바뀌었을 때만 다시 만듦
+  if ((envT -= dt) > 0) return; const u = skyU, key = [u.uH.value.getHex() >> 2 & 0x3f3f3f, u.uZ.value.getHex() >> 2 & 0x3f3f3f, Math.round(u.uGlow.value * 8), Math.round(u.uSun.value.y * 12)].join();
+  if (key === envKey) { envT = 0.4; return; } envKey = key; envT = isTouch ? 3 : 1.2;
+  const rt = pmrem.fromScene(envScene, 0, 1, 1000); scene.environment = rt.texture; if (envRT) envRT.dispose(); envRT = rt;
+}
 
 /* ---------- 후처리: 장면을 한 번 그려 두고, 초점 밖을 흐리게 + 공기질에 따라 뿌옇게/선명하게 ---------- */
 const FX = { ok: false, on: false, rt: null, mat: null, scene: new THREE.Scene(), cam: new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1) }, _sz = new THREE.Vector2();
@@ -2132,17 +2242,20 @@ try {
     renderer.getDrawingBufferSize(_sz);
     FX.rt = new THREE.WebGLRenderTarget(_sz.x, _sz.y, { type: THREE.HalfFloatType, samples: isTouch ? 0 : 4 });
     FX.mat = new THREE.ShaderMaterial({ depthTest: false, depthWrite: false, toneMapped: false,
-      uniforms: { tD: { value: FX.rt.texture }, uAsp: { value: 1 }, uFocus: { value: 0.5 }, uBlur: { value: 1 }, uHaze: { value: 1 }, uHazeCol: { value: new THREE.Color('#c9c0a6') }, uNight: { value: 0 }, uT: { value: 0 } },
+      uniforms: { tD: { value: FX.rt.texture }, uAsp: { value: 1 }, uFocus: { value: 0.5 }, uBlur: { value: 1 }, uHaze: { value: 1 }, uHazeCol: { value: new THREE.Color('#c9c0a6') }, uNight: { value: 0 }, uT: { value: 0 }, uExp: { value: EXPOSURE } },
       vertexShader: 'varying vec2 vUv;\nvoid main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
       fragmentShader: [
-        'uniform sampler2D tD; uniform float uAsp; uniform float uFocus; uniform float uBlur; uniform float uHaze; uniform float uNight; uniform float uT; uniform vec3 uHazeCol; varying vec2 vUv;',
+        'uniform sampler2D tD; uniform float uExp; uniform float uAsp; uniform float uFocus; uniform float uBlur; uniform float uHaze; uniform float uNight; uniform float uT; uniform vec3 uHazeCol; varying vec2 vUv;',
         'float hash(vec2 p){ return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))); }',
+        'vec3 rrt(vec3 v){ vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }',
+        'vec3 aces(vec3 c){ const mat3 mi = mat3(vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777)); const mat3 mo = mat3(vec3(1.60475, -0.10208, -0.00327), vec3(-0.53108, 1.10813, -0.07276), vec3(-0.07367, -0.00605, 1.07602)); return clamp(mo * rrt(mi * (c / 0.6)), 0.0, 1.0); }',
         'void main(){',
         '  float amt = smoothstep(0.14, 0.52, abs(vUv.y - uFocus)) * uBlur;',              // 초점 띠에서 멀수록 흐리게 (미니어처 사진 느낌)
         '  vec2 rad = amt * 0.0075 * vec2(1.0 / uAsp, 1.0);',
         '  float rot = hash(gl_FragCoord.xy) * 6.2832;',
         '  vec3 c = texture2D(tD, vUv).rgb * 0.16;',
         '  for (int i = 0; i < 12; i++) { float a = float(i) * 2.39996 + rot; float r = sqrt((float(i) + 0.5) / 12.0); c += texture2D(tD, vUv + vec2(cos(a), sin(a)) * r * rad).rgb * 0.07; }',
+        '  c = aces(c * uExp);',
         '  float hz = uHaze * (0.06 + 0.26 * smoothstep(0.2, 1.0, vUv.y));',               // 뿌연 공기: 먼 곳(화면 위쪽)일수록
         '  c = mix(c, uHazeCol, hz);',
         '  float l = dot(c, vec3(0.2126, 0.7152, 0.0722));',
@@ -2175,14 +2288,11 @@ function applyGfx() {
 }
 
 /* ---------- 땅: 얼룩덜룩한 풀밭 무늬 ---------- */
-{ const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d'); g.fillStyle = '#a6d18f'; g.fillRect(0, 0, 512, 512);
-  for (let i = 0; i < 90; i++) { const x = rand(0, 512), y = rand(0, 512), r = rand(20, 72), cl = pick(['rgba(136,194,118,', 'rgba(184,224,152,', 'rgba(150,206,134,']); for (const [ox, oy] of [[0, 0], [512, 0], [-512, 0], [0, 512], [0, -512]]) { const gr = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r); gr.addColorStop(0, cl + '0.55)'); gr.addColorStop(1, cl + '0)'); g.fillStyle = gr; g.fillRect(x + ox - r, y + oy - r, r * 2, r * 2); } }
-  for (let i = 0; i < 1500; i++) { g.fillStyle = pick(['rgba(118,178,104,.5)', 'rgba(204,236,172,.45)']); g.fillRect(rand(0, 512), rand(0, 512), 2, 2); }
-  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(14, 14); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; ground.material = new THREE.MeshLambertMaterial({ map: t }); }
+ground.material = rMat('#66833f', RK.GRASS);
 
 /* ---------- 연못 (물멍 자리): 공기가 맑아질수록 물빛도 맑아짐 ---------- */
 const POND = { x: -21, z: 23, r: 4.2 }, waterU = { value: 0 };
-const waterMat = new THREE.MeshLambertMaterial({ color: '#8d9a74' });
+const waterMat = new THREE.MeshStandardMaterial({ color: '#8d9a74', roughness: 0.1, metalness: 0, envMapIntensity: 1.7 });
 waterMat.onBeforeCompile = (sh) => {
   sh.uniforms.uT = waterU;
   sh.vertexShader = 'varying vec2 vW;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vW = position.xy;');
@@ -2234,7 +2344,7 @@ const fireGlow = glow(null, 14.6, 1.2, 13.4, '#ff9a3c', 3.4, 0.7);
 /* ---------- 풀포기와 들꽃 (많이 심어도 가볍게: 한 번에 그림) ---------- */
 const onGrass = (x, z) => !(z < -9.6 && z > -20.6) && Math.hypot(x, z - 3) > 8.6 && Math.hypot(x - POND.x, z - POND.z) > POND.r + 0.7 && !pads.some((p) => Math.abs(x - p.x) < p.w / 2 + 0.35 && Math.abs(z - p.z) < p.d / 2 + 0.35) && cols.every((c) => Math.hypot(x - c.x, z - c.z) > c.r + 0.15);
 { const N = 1300, im = new THREE.InstancedMesh(new THREE.ConeGeometry(0.1, 0.5, 4), new THREE.MeshLambertMaterial(), N), d = new THREE.Object3D(), cc = new THREE.Color(); let n = 0;
-  for (let k = 0; k < 900 && n < N - 5; k++) { const cx = rand(-48, 48), cz = rand(-32, 38); if (!onGrass(cx, cz)) continue; const tint = pick(['#8fc77a', '#7dbb6c', '#9fd486', '#b5dd8f']);
+  for (let k = 0; k < 900 && n < N - 5; k++) { const cx = rand(-48, 48), cz = rand(-32, 38); if (!onGrass(cx, cz)) continue; const tint = pick(['#7fa653', '#6f9a4b', '#8cb35c', '#99bb66']);
     for (let j = 0; j < 5; j++) { d.position.set(cx + rand(-0.4, 0.4), 0.2, cz + rand(-0.4, 0.4)); d.rotation.set(rand(-0.3, 0.3), rand(0, 6), rand(-0.3, 0.3)); d.scale.set(rand(0.7, 1.4), rand(0.6, 1.6), rand(0.7, 1.4)); d.updateMatrix(); im.setMatrixAt(n, d.matrix); im.setColorAt(n, cc.set(tint)); n++; } }
   im.count = n; im.receiveShadow = true; scene.add(im);
   const F2 = 320, fl = new THREE.InstancedMesh(new THREE.SphereGeometry(0.075, 6, 5), new THREE.MeshLambertMaterial(), F2); let m = 0;
@@ -2348,7 +2458,7 @@ function drawPzBoard() { // 배경판 그림: 맑은 하늘, 구름, 해, 큰 �
 drawPzBoard(); if (document.fonts) document.fonts.ready.then(drawPzBoard);
 { // 배경판 · 기둥 · 바닥 발자국 · 삼각대 카메라
   const pg = new THREE.Group(); pg.position.set(PZ.x, 0, PZ.z); scene.add(pg);
-  const board = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 3.25), new THREE.MeshBasicMaterial({ map: pzTex })); board.position.set(0, 2.0, 0.08); pg.add(board);
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 3.25), new THREE.MeshBasicMaterial({ map: pzTex, toneMapped: false })); board.position.set(0, 2.0, 0.08); pg.add(board);
   box(5.5, 3.5, 0.14, '#12142b', 0, 2.0, 0, pg); for (const s of [-1, 1]) { cyl(0.13, 0.15, 3.8, '#ffd23f', s * 2.78, 1.9, 0, pg, 10); sph(0.22, '#ff5a5f', s * 2.78, 3.9, 0, pg); }
   const st = new THREE.Mesh(new THREE.CircleGeometry(1.7, 40), mat('#ffd23f')); st.rotation.x = -Math.PI / 2; st.position.set(0, 0.03, 1.4); st.receiveShadow = true; pg.add(st);
   const st2 = new THREE.Mesh(new THREE.RingGeometry(1.55, 1.7, 40), mat('#12142b')); st2.rotation.x = -Math.PI / 2; st2.position.set(0, 0.035, 1.4); pg.add(st2);
@@ -2485,7 +2595,7 @@ function updateWorldFx(dt) {
   skyDisc.visible = true; skyDisc.position.copy(camera.position).addScaledVector(skyU.uSun.value, 300); skyDisc.material.color.copy(skyU.uSunCol.value);
   sunGlow.position.copy(skyDisc.position); sunGlow.material.color.copy(skyU.uSunCol.value); sunGlow.material.opacity = 0.25 + 0.4 * skyU.uGlow.value;
   // 연못과 오리
-  waterU.value = T; waterMat.color.set('#8d9a74').lerp(tmpCol.set('#5fc0ea'), cl).lerp(tmpCol.set('#1c2f5a'), nightK * 0.6);
+  updateEnv(dt); waterU.value = T; waterMat.color.set('#8d9a74').lerp(tmpCol.set('#5fc0ea'), cl).lerp(tmpCol.set('#1c2f5a'), nightK * 0.6);
   ducks.forEach((d, i) => { const a = T * (i ? -0.16 : 0.2) + i * 2, r = i ? 2.6 : 1.5; d.position.set(POND.x + Math.cos(a) * r, 0.04 + Math.sin(T * 2 + i) * 0.02, POND.z + Math.sin(a) * r); d.rotation.y = i ? Math.PI - a : -a; });
   for (const m of mascots) { const dx = m.pos.x - POND.x, dz = m.pos.z - POND.z, d = Math.hypot(dx, dz); if (d < POND.r + 0.5 && d > 0.01) { m.pos.x = POND.x + (dx / d) * (POND.r + 0.5); m.pos.z = POND.z + (dz / d) * (POND.r + 0.5); } }
   fireGlow.visible = fire.visible; fireGlow.scale.setScalar(3.2 + Math.sin(T * 14) * 0.4);
