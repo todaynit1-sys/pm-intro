@@ -558,6 +558,7 @@ kbd{display:inline-block;min-width:1.5em;padding:1px 5px;border-radius:5px;borde
       <span class="logo-k">미세먼지 계절관리제 대작전</span>
       <h1><span>푸른하늘</span><span>지킴이</span></h1>
       <p class="logo-sub">뿌연 마을을 맑은 하늘로!<br>다섯 가지 체험을 해내고 <b>푸른하늘 지킴이</b>가 되어 보세요.</p>
+      <div class="season-day" id="seasonDay" hidden></div>
       <div class="logo-chips"><span>🔬 미세먼지 연구소</span><span>🚗 단속 카메라</span><span>🚨 상황실</span><span>😷 심부름 대작전</span><span>🔥 배출원 줄이기</span><span>🕹️ 오락기</span><span>☁️ 하늘멍</span></div>
     </div>
   </div>
@@ -1457,7 +1458,7 @@ const NOTES = [
 function openNote(tab = 0) {
   if (!state.read.includes(tab)) { state.read.push(tab); save(); }
   openModal(`<div class="q-head"><b>📒 지킴이 수첩</b></div><div class="tabs">${NOTES.map((n, i) => `<button data-t="${i}" class="${i === tab ? 'on' : ''}">${n[0]}</button>`).join('')}</div>
-    <div class="note">${NOTES[tab][1]}<div class="src">자료: 기후에너지환경부·국무조정실 보도자료(2025.11.18., 2025.11.25., 2026.2.24.), 수원시 누리집 미세먼지 안내. ${F.round} 계절관리제 기준이며 시기와 지역에 따라 달라질 수 있어요. 최신 내용은 에어코리아와 지자체 안내를 확인하세요.</div></div>`);
+    <div class="note">${NOTES[tab][1]}<a class="real-air" href="https://www.airkorea.or.kr/" target="_blank" rel="noopener"><span>🌤️ 오늘 <b>진짜 우리 동네</b> 미세먼지는?</span><span class="ra-go">에어코리아에서 보기 ↗</span></a><div class="src">자료: 기후에너지환경부·국무조정실 보도자료(2025.11.18., 2025.11.25., 2026.2.24.), 수원시 누리집 미세먼지 안내. ${F.round} 계절관리제 기준이며 시기와 지역에 따라 달라질 수 있어요. 최신 내용은 에어코리아와 지자체 안내를 확인하세요.</div></div>`);
   sheet.querySelectorAll('.tabs button').forEach((b) => (b.onclick = () => { SFX.click(); openNote(+b.dataset.t); }));
 }
 
@@ -2799,7 +2800,14 @@ function update(dt) {
    시작
    ========================================================= */
 const nameIn = $('#nameIn');
+function seasonNote(now = new Date()) { // 계절관리제는 매년 12월 1일 ~ 이듬해 3월 31일
+  const y = now.getFullYear(), m = now.getMonth(), gap = (a, b) => Math.round((Date.UTC(a.getFullYear(), a.getMonth(), a.getDate()) - Date.UTC(b.getFullYear(), b.getMonth(), b.getDate())) / 864e5);
+  if (m === 11 || m <= 2) { const left = gap(new Date(m === 11 ? y + 1 : y, 2, 31), now); return { on: true, html: `🚨 지금은 <b>계절관리제 기간</b>이에요 · ${left ? `3월 31일까지 ${left}일` : '오늘이 마지막 날'}` }; }
+  const d = gap(new Date(y, 11, 1), now);
+  return { on: false, html: d <= 60 ? `⏰ 올겨울 <b>계절관리제 시작까지 D-${d}</b><span class="sd-x"> · 12월 1일~이듬해 3월 31일</span>` : '계절관리제는 매년 <b>12월 1일~이듬해 3월 31일</b>이에요' };
+}
 function syncStart() {
+  const sn = seasonNote(), sd = $('#seasonDay'); sd.innerHTML = sn.html; sd.classList.toggle('on', sn.on); sd.hidden = false;
   nameIn.value = state.name; $('#startBtn').textContent = state.intro ? '이어서 하기' : '시작하기';
   const rb = $('#resetBtn'); rb.hidden = !state.intro; rb.textContent = '기록 지우고 처음부터'; rb.dataset.sure = '';
 }
@@ -2831,7 +2839,7 @@ let last = performance.now();
 function frame(ts) { const dt = Math.min(0.05, Math.max(0, (ts - last) / 1000)); last = ts; if (!frameOn) { update(dt); renderFrame(); } requestAnimationFrame(frame); } // 겹쳐 띄운 게임을 하는 동안은 마을을 멈춤
 requestAnimationFrame(frame);
 window.__worldReady = true;
-if (location.hash === '#debug') window.__g = { get state() { return state; }, player, inters, SPOTS, SRC, step: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) update(dt); renderFrame(); }, go: goTo, openGo, startMeong, stopMeong, meong, startDust, dust, openPhotoZone, shootZone, PZSPOT, certCode, ccSign, missionDone, playM1, playM2, playM3, showReport, refreshHud, playArcade, openBadges, openCustomizer, mons, orbs, mascots, enf, cine, FX, gfx, takePhoto, openSettings, clearCine, enfJudge, setMood, camera, run, playLab, playM3, runStop, runHit };
+if (location.hash === '#debug') window.__g = { get state() { return state; }, player, inters, SPOTS, SRC, step: (n = 1, dt = 1 / 30) => { for (let i = 0; i < n; i++) update(dt); renderFrame(); }, go: goTo, openGo, startMeong, stopMeong, meong, startDust, dust, openPhotoZone, shootZone, PZSPOT, seasonNote, certCode, ccSign, missionDone, playM1, playM2, playM3, showReport, refreshHud, playArcade, openBadges, openCustomizer, mons, orbs, mascots, enf, cine, FX, gfx, takePhoto, openSettings, clearCine, enfJudge, setMood, camera, run, playLab, playM3, runStop, runHit };
 </script>
 </body>
 </html>

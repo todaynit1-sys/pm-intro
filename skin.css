@@ -292,3 +292,12 @@ kbd{border:2px solid var(--ink);border-bottom-width:3px;border-radius:6px;backgr
 }
 @media (prefers-reduced-motion:reduce){.alert{animation:none}}
 
+
+/* ---------- 시작 화면: 계절관리제 날짜 알림 · 수첩: 에어코리아 단추 ---------- */
+.season-day{display:inline-block;margin-top:12px;padding:6px 14px;border:2.5px solid var(--ink);border-radius:99px;background:var(--sun);color:var(--ink);font-size:13.5px;font-weight:700;line-height:1.4;box-shadow:var(--hs)}
+.season-day.on{background:var(--coral);color:#fff}
+.season-day b{font-weight:900}
+.real-air{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;margin:14px 0 4px;padding:11px 14px;border:2.5px solid var(--ink);border-radius:14px;background:#dff1ff;color:var(--ink);font-size:14px;font-weight:700;text-decoration:none;box-shadow:var(--hs)}
+.real-air .ra-go{font-weight:900;white-space:nowrap}
+.real-air:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+@media (max-width:600px){.season-day{margin-top:8px;font-size:13px;padding:5px 12px}.season-day .sd-x{display:none}}
