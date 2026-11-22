@@ -311,3 +311,14 @@ kbd{border:2px solid var(--edge);border-bottom-width:3px;border-radius:6px;backg
 .sw{border-color:#cbb084}
 .logo-k,.logo-sub b{color:#d44a2e}
 #act:active{transform:translate(0,3px)}
+
+/* ---------- 위쪽 정보: 넓은 화면에서는 제목·진행·체험 아이콘을 한 줄 막대로 ---------- */
+.brand .mchip{transform:none;border-radius:99px;background:#e0553a;color:#fff;padding:2px 11px}
+@media (min-width:760px){
+  .hud-left{width:auto;max-width:min(560px,calc(100vw - 420px))}
+  .card.obj{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"b m" "t t";align-items:center;column-gap:14px;row-gap:6px;padding:8px 10px 10px 16px;border-radius:22px}
+  .obj .brand{grid-area:b;font-size:17px;gap:10px}
+  .obj #months{grid-area:m;margin:0;grid-template-columns:repeat(5,46px);justify-content:start;padding-left:12px;border-left:2px solid var(--edge)}
+  .obj #months span{height:40px}
+  .obj #objText{grid-area:t;padding-top:6px;border-top:1.5px dashed var(--edge)}
+}

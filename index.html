@@ -827,6 +827,12 @@ function put(m, parent, x, y, z, cast = true) { m.position.set(x, y, z); m.castS
 const box = (w, h, d, c, x, y, z, p, cast) => put(new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c)), p, x, y, z, cast);
 const cyl = (rt, rb, h, c, x, y, z, p, seg = 16, cast) => put(new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat(c)), p, x, y, z, cast);
 const sph = (r, c, x, y, z, p) => put(new THREE.Mesh(new THREE.SphereGeometry(r, 14, 10), mat(c)), p, x, y, z);
+const RBOX = new Map();
+function rboxGeo(w, h, d, r) { const k = [w, h, d, r].join(); if (RBOX.has(k)) return RBOX.get(k);
+  const sh = new THREE.Shape(), x = w / 2 - r, z = d / 2 - r; sh.moveTo(-x, -d / 2); sh.lineTo(x, -d / 2); sh.absarc(x, -z, r, -Math.PI / 2, 0); sh.lineTo(w / 2, z); sh.absarc(x, z, r, 0, Math.PI / 2); sh.lineTo(-x, d / 2); sh.absarc(-x, z, r, Math.PI / 2, Math.PI); sh.lineTo(-w / 2, -z); sh.absarc(-x, -z, r, Math.PI, Math.PI * 1.5);
+  const g = new THREE.ExtrudeGeometry(sh, { depth: h, bevelEnabled: false, curveSegments: 6 }); g.rotateX(Math.PI / 2); g.translate(0, h / 2, 0); g.computeVertexNormals(); RBOX.set(k, g); return g; }
+const rbox = (w, h, d, c, x, y, z, r = 0.45, p) => put(new THREE.Mesh(rboxGeo(w, h, d, r), mat(c)), p, x, y, z);
+const plinth = (w, d, x, z) => rbox(w + 0.3, 0.38, d + 0.3, '#d8c4a2', x, 0.19, z, 0.6); // 건물 아래 돌 받침
 const pads = [], discs = []; // 바닥에 깐 네모·동그라미 (풀을 심지 않을 곳, 미니맵에 그릴 것)
 function flat(w, d, c, x, z, y = 0.02) { pads.push({ x, z, w, d, c }); const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat(c)); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); m.receiveShadow = true; scene.add(m); return m; }
 function disc(r, c, x, z, y = 0.02) { discs.push({ x, z, r, c }); const m = new THREE.Mesh(new THREE.CircleGeometry(r, 40), mat(c)); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); m.receiveShadow = true; scene.add(m); return m; }
@@ -922,17 +928,17 @@ for (let i = 0; i < 7; i++) { const g = new THREE.Group(); g.position.set(rand(-
 // ① 12월: 운행제한 단속 초소 (도로 위 단속 카메라)
 cyl(0.16, 0.16, 5.4, '#55616b', -14, 2.7, -10.6, null, 8); cyl(0.16, 0.16, 5.4, '#55616b', -14, 2.7, -19.4, null, 8); box(0.3, 0.3, 9.1, '#55616b', -14, 5.3, -15);
 for (const z of [-13.2, -16.8]) { box(0.5, 0.36, 0.4, '#f4f4f0', -14, 4.95, z); box(0.2, 0.2, 0.2, '#2b2f35', -13.7, 4.95, z); }
-box(2.4, 2.5, 1.5, '#f4f4f0', -10.6, 1.25, -11); box(2.7, 0.22, 1.8, '#2f4b6e', -10.6, 2.6, -11); box(1.5, 0.9, 0.06, '#9fd0ee', -10.6, 1.6, -10.23, null, false);
+rbox(2.4, 2.5, 1.5, '#f4f4f0', -10.6, 1.25, -11, 0.35); rbox(2.8, 0.24, 1.9, '#2f4b6e', -10.6, 2.62, -11, 0.45); { const d = sph(0.5, '#79a8e0', -10.6, 2.74, -11); d.scale.set(1.6, 0.6, 1.2); } sph(0.14, '#ff6b5e', -10.6, 3.15, -11); box(1.5, 0.9, 0.06, '#9fd0ee', -10.6, 1.6, -10.23, null, false);
 sign('5등급 차량 운행제한 단속', -10.6, 3.15, -10.2, { w: 3.4, h: 0.6, bg: '#2f4b6e', size: 0.52 });
 // ② 1월: 미세먼지 종합상황실
-box(9, 5, 7, '#e8eef2', 18, 2.5, -5.8); box(9.6, 0.4, 7.6, '#4a6fa5', 18, 5.2, -5.8); box(1.7, 2.5, 0.12, '#35506e', 18, 1.25, -2.28);
+rbox(9, 5, 7, '#e8eef2', 18, 2.5, -5.8, 0.9); plinth(9, 7, 18, -5.8); rbox(9.6, 0.4, 7.6, '#4a6fa5', 18, 5.2, -5.8, 1.1); rbox(8.4, 0.5, 6.4, '#e2edf8', 18, 5.6, -5.8, 0.9); box(1.7, 2.5, 0.12, '#35506e', 18, 1.25, -2.28);
 for (const x of [-3.1, -1.6, 1.6, 3.1]) { box(1, 1.1, 0.1, '#7fb7e6', 18 + x, 1.7, -2.28, null, false); }
 for (const x of [-3.1, -1.55, 0, 1.55, 3.1]) box(1, 0.9, 0.1, '#7fb7e6', 18 + x, 3.3, -2.28, null, false);
 sign('미세먼지 종합상황실', 18, 4.45, -2.24, { w: 5.6, h: 0.75, bg: '#1f4d7a', size: 0.56 });
 cyl(0.06, 0.06, 3, '#8a9299', 21, 6.9, -7.3, null, 6); { const d = sph(0.7, '#dfe6ea', 15.6, 6.1, -6.8); d.scale.set(1, 0.45, 1); d.rotation.z = 0.5; } cyl(0.1, 0.1, 0.8, '#8a9299', 15.6, 5.7, -6.8, null, 6);
 col(15, -5.8, 3.7); col(21, -5.8, 3.7); col(18, -5.8, 3.9); for (const x of [14, 16.5, 19, 21.5]) col(x, -8.6, 1.6); // 건물 뒤(도로 쪽) 틈 막기
 // ③ 2월: 우리 집
-box(6, 3.4, 5, '#fbe9c8', -18, 1.7, 9); { const r = new THREE.Mesh(new THREE.ConeGeometry(4.9, 2.4, 4), mat('#d9695a')); r.rotation.y = Math.PI / 4; put(r, null, -18, 4.6, 9); }
+rbox(6, 3.4, 5, '#fbe9c8', -18, 1.7, 9, 0.5); plinth(6, 5, -18, 9); { const r = new THREE.Mesh(new THREE.ConeGeometry(4.9, 2.4, 4), mat('#d9695a')); r.rotation.y = Math.PI / 4; put(r, null, -18, 4.6, 9); }
 box(1.15, 2, 0.12, '#8a5a3a', -18, 1, 11.52); sph(0.07, '#f2c14e', -17.65, 1, 11.62); box(1.2, 1.1, 0.1, '#9fd0ee', -19.9, 1.9, 11.52, null, false); box(1.2, 1.1, 0.1, '#9fd0ee', -16.1, 1.9, 11.52, null, false);
 box(0.7, 1.5, 0.7, '#c9836a', -16.4, 4.6, 8); flat(1.7, 0.9, '#c96f5a', -18, 12.2, 0.03);
 col(-18, 9, 3.6);
@@ -956,7 +962,8 @@ col(-3.4, 20, 2.2); col(0.6, 20.2, 1.5);
 // (라) 도로 먼지
 const dustPatches = [[26, -13.2, 1.5], [28.2, -14.4, 1.2], [27.4, -16.2, 1.4], [25, -15.6, 1]].map(([x, z, r]) => { const m = new THREE.Mesh(new THREE.CircleGeometry(r, 18), new THREE.MeshBasicMaterial({ color: '#b79a6c', transparent: true, opacity: 0.75 })); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.035, z); scene.add(m); return m; });
 // (마) 문 열고 난방하는 빵집
-box(6, 3.2, 4.4, '#fff3d6', -19, 1.6, -7.2); box(6.5, 0.25, 1.5, '#e86b5a', -19, 2.75, -4.55); box(6.3, 0.3, 4.7, '#c9836a', -19, 3.35, -7.2);
+rbox(6, 3.2, 4.4, '#fff3d6', -19, 1.6, -7.2, 0.5); plinth(6, 4.4, -19, -7.2); rbox(6.3, 0.3, 4.7, '#c9836a', -19, 3.35, -7.2, 0.6);
+{ const aw = new THREE.Group(); aw.position.set(-19, 2.62, -4.75); scene.add(aw); const awM = ['#ef8a6e', '#fffaf0'].map((c) => rMat(c, RK.PLAIN, { side: THREE.DoubleSide })); for (let i = 0; i < 9; i++) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.7, 14, 1, false, 0, Math.PI / 2), awM[i % 2]); m.rotation.z = Math.PI / 2; m.position.set(-2.8 + i * 0.7, 0, -0.25); m.castShadow = true; aw.add(m); } } // 줄무늬 둥근 차양
 sign('따끈따끈 빵집', -19, 3.9, -4.9, { w: 3.4, h: 0.6, bg: '#8a5a3a', size: 0.56 });
 box(1.6, 1.2, 0.1, '#9fd0ee', -20.6, 1.7, -4.96, null, false); box(1.2, 2.1, 0.06, '#ffb35c', -17.7, 1.05, -4.99, null, false);
 const shopDoor = new THREE.Group(); shopDoor.position.set(-18.3, 0, -4.94); shopDoor.rotation.y = 1.35; scene.add(shopDoor); plainly(() => box(1.2, 2.1, 0.1, '#8a5a3a', 0.6, 1.05, 0, shopDoor))();
@@ -2018,11 +2025,11 @@ $('#meong').addEventListener('click', (e) => {
    ① 얼마나 작을까(크기 순서) ② 미세먼지 신호등(등급 맞히기) ③ 어디서 나올까(배출원 고르기)
    ========================================================= */
 flat(2.4, 8.6, '#ece5d2', 22, 4.9, 0.014); flat(7.4, 2.4, '#ece5d2', 25.6, 8.6, 0.014);
-box(7, 4.4, 5.5, '#eef6f4', 28, 2.2, 4); box(7.6, 0.4, 6.1, '#3fae98', 28, 4.6, 4); box(1.5, 2.4, 0.12, '#2f6f66', 28, 1.2, 6.78);
+rbox(7, 4.4, 5.5, '#eef6f4', 28, 2.2, 4, 0.7); plinth(7, 5.5, 28, 4); rbox(7.6, 0.4, 6.1, '#3fae98', 28, 4.6, 4, 0.9); box(1.5, 2.4, 0.12, '#2f6f66', 28, 1.2, 6.78);
 for (const x of [-2.4, 2.4]) box(1.3, 1.2, 0.1, '#7fb7e6', 28 + x, 1.9, 6.78, null, false);
 for (const x of [-2.4, -0.8, 0.8, 2.4]) box(1.1, 0.8, 0.1, '#7fb7e6', 28 + x, 3.5, 6.78, null, false);
 sign('🔬 미세먼지 연구소', 28, 2.75, 6.84, { w: 3.6, h: 0.56, bg: '#217569', size: 0.56 });
-{ const d = sph(1.5, '#dfe9ee', 29.8, 4.8, 3.2); d.scale.y = 0.8; const t = cyl(0.22, 0.3, 1.9, '#55616b', 29.2, 5.9, 3.6, null, 10); t.rotation.z = 0.7; t.rotation.x = 0.3; cyl(0.05, 0.05, 1.6, '#8a9299', 25.6, 5.6, 2.6, null, 6); sph(0.16, '#e5484d', 25.6, 6.45, 2.6); }
+{ cyl(0.08, 0.08, 0.8, '#8a9299', 30.2, 7.75, 4, null, 8); const d = sph(0.6, '#f4f6fa', 30.2, 8.25, 4); d.scale.set(1, 0.35, 1); d.rotation.z = 0.5; cyl(0.05, 0.05, 1.2, '#8a9299', 25.8, 7.9, 4, null, 6); sph(0.14, '#e5484d', 25.8, 8.55, 4); } // 둥근 지붕 위 안테나
 for (const [x, z] of [[25.6, 0.1], [28, -0.1], [30.4, 0.1], [26.8, -2.2], [29.2, -2.2]]) { sph(1.2, '#6fb36a', x, 0.7, z).scale.y = 0.75; col(x, z, 1.2); } // 건물 뒤 덤불: 지붕에 가려지는 자리로 못 들어가게
 col(26.3, 4, 3.3); col(29.7, 4, 3.3);
 npc(26.6, 8.3, 0.3, { top: 'shirt', tie: false, shirt: '#ffffff', pants: '#3d405b', hair: '#c9ccd3', style: 'curly', acc: 'glasses' }); // 박사님
@@ -2365,18 +2372,18 @@ const onGrass = (x, z) => !(z < -9.6 && z > -20.6) && Math.hypot(x, z - 3) > 8.6
 
 /* ---------- 건물 꾸미기: 둥근 지붕 · 아치 창 · 동그란 아이콘 간판 · 창가 꽃상자 ---------- */
 { const glassM = rMat('#bfe3f5', RK.PLAIN, { roughness: 0.15, envMapIntensity: 1.4 }), frameM = rMat('#fffaf0');
-  const arch = (x, y, z, w) => { const g = new THREE.Mesh(new THREE.CircleGeometry(w / 2, 20, 0, Math.PI), glassM); g.position.set(x, y, z + 0.01); scene.add(g); const f = new THREE.Mesh(new THREE.TorusGeometry(w / 2, 0.06, 6, 20, Math.PI), frameM); f.position.set(x, y, z + 0.03); f.castShadow = true; scene.add(f); };
+  const arch = (x, y, z, w) => { const g = new THREE.Mesh(new THREE.CircleGeometry(w / 2, 20, 0, Math.PI), glassM); g.position.set(x, y, z + 0.01); scene.add(g); const f = new THREE.Mesh(new THREE.TorusGeometry(w / 2, 0.06, 6, 20, Math.PI), frameM); f.position.set(x, y, z + 0.03); f.castShadow = false; scene.add(f); };
   const barrel = (r, len, c, x, y, z) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 28, 1, false, 0, Math.PI), mat(c)); m.rotation.z = Math.PI / 2; put(m, null, x, y, z); return m; };
   const icon = (emo, x, y, z, r = 0.72, ring = '#f59a3c') => { const d = cyl(r, r, 0.14, '#fff8e9', x, y, z, null, 28); d.rotation.x = Math.PI / 2; const o = new THREE.Mesh(new THREE.TorusGeometry(r, 0.07, 8, 28), mat(ring)); o.position.set(x, y, z + 0.02); scene.add(o); const t = textPlane(emo, { w: r * 1.5, h: r * 1.5, bg: null, size: 0.8 }); t.position.set(x, y, z + 0.09); scene.add(t); };
-  const flowers = (x, y, z, w) => { box(w, 0.2, 0.28, '#d6a26a', x, y, z + 0.14); for (let i = 0; i < 5; i++) sph(0.09, pick(['#ff9fb8', '#ffd45c', '#ffffff', '#b9a4ff']), x - w / 2 + 0.15 + i * (w - 0.3) / 4, y + 0.16, z + 0.14); };
+  const flowers = (x, y, z, w) => { box(w, 0.2, 0.28, '#d6a26a', x, y, z + 0.14); for (let i = 0; i < 5; i++) sph(0.09, pick(['#ff9fb8', '#ffd45c', '#ffffff', '#b9a4ff']), x - w / 2 + 0.15 + i * (w - 0.3) / 4, y + 0.16, z + 0.14).castShadow = false; };
   // 연구소: 둥근 지붕, 아치 창, 플라스크 간판
-  barrel(2.75, 7.4, '#5cc4ad', 28, 4.8, 4); for (const dx of [-2.4, 2.4]) arch(28 + dx, 2.5, 6.78, 1.3); arch(28, 2.4, 6.78, 1.5); icon('🧪', 28, 5.25, 6.95, 0.72, '#3fae98');
+  barrel(2.75, 7.4, '#5cc4ad', 28, 4.8, 4); for (const dx of [-2.4, 2.4]) arch(28 + dx, 2.5, 6.78, 1.1); icon('🧪', 28, 5.6, 7.15, 0.72, '#3fae98');
   // 상황실: 둥근 기둥, 아치 문·창, 모니터 간판
-  for (const dx of [-4.5, 4.5]) cyl(0.48, 0.48, 5.3, '#79a8e0', 18 + dx, 2.65, -2.35, null, 20); arch(18, 2.5, -2.28, 1.7); for (const dx of [-3.1, -1.6, 1.6, 3.1]) arch(18 + dx, 2.25, -2.28, 1.0); icon('🖥️', 18, 6.15, -2.25, 0.75, '#4f8fe0');
+  for (const dx of [-4.5, 4.5]) cyl(0.48, 0.48, 5.3, '#79a8e0', 18 + dx, 2.65, -2.35, null, 20); col(13.5, -2.35, 0.5); col(22.5, -2.35, 0.5); for (const dx of [-3.1, -1.6, 1.6, 3.1]) arch(18 + dx, 2.25, -2.28, 1.0); icon('🖥️', 18, 6.15, -2.25, 0.75, '#4f8fe0');
   // 우리 집: 아치 문·창, 창가 꽃상자
   arch(-18, 2.0, 11.52, 1.15); for (const dx of [-1.9, 1.9]) { arch(-18 + dx, 2.45, 11.52, 1.2); flowers(-18 + dx, 1.28, 11.52, 1.3); }
   // 빵집: 아치 창, 크루아상 간판
-  arch(-20.6, 2.3, -4.96, 1.6); flowers(-20.6, 1.0, -4.96, 1.7); icon('🥐', -19, 4.85, -4.85, 0.6, '#ea9272');
+  flowers(-20.6, 1.0, -4.96, 1.7); icon('🥐', -21.75, 4.12, -5.05, 0.6, '#ea9272');
 }
 
 /* ---------- 길가 꽃 덤불: 길과 광장 가장자리를 따라 둥근 덤불과 꽃송이 ---------- */
